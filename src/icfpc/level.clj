@@ -26,7 +26,7 @@
   ([{:bot/keys [x y] :as level}]
     (valid? x y level)))
 
-(defn bot-covering [x y layout level]
+(defn bot-covering [{:bot/keys [x y layout] :as level}]
   (reduce 
     (fn [acc [dx dy]]
       (let [x' (+ x dx)
@@ -39,7 +39,7 @@
 
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
-  [{:bot/keys [x y layout collected-boosters] :level/keys [width height grid boosters] :as level}]
+  [{:level/keys [boosters] :as level}]
   (reduce
     (fn [level [x y]]
       (let [before (get-level level x y)
@@ -56,7 +56,7 @@
                                                       (update boosters booster inc)
                                                       (assoc boosters booster 1)))))))))
     level
-    (bot-covering x y layout level)))
+    (bot-covering level)))
 
 (def score-point {EMPTY       1
                   OBSTACLE    0
@@ -71,14 +71,14 @@
       (= c FAST_WHEELS)
       (= c DRILL)))
 
-(defn position-score [{:bot/keys [x y layout] :level/keys [width height grid] :as level} path]
+(defn position-score [level path]
   (if (is-booster? (last path))
     -1
     (reduce
      (fn [score [x y]]
        (+ score (score-point (get-level level x y))))
      0
-     (bot-covering x y layout level))))
+     (bot-covering level))))
 
 (def prob-001
   {:level/width  7

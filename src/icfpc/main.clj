@@ -5,13 +5,13 @@
    [clojure.string :as str]
    [clojure.java.io :as io]))
 
-(defn solve [name]
+(defn solve [name & [opts]]
   (print "Solving" name "...")
   (flush)
   (let [level (level/load-level (str name ".desc"))
-        sln   (bot/solve level {:debug? false})]
+        sln   (bot/solve level (merge {:debug? false} opts))]
     (println " found" sln)
-    (spit (str "resources/solutions/" name ".sol") sln)))
+    (spit (str "problems/" name ".sol") sln)))
 
 (defn skip-till [n xs]
   (cond
@@ -20,7 +20,7 @@
     (number? n) (drop n xs)))
 
 (defn -main [& [skip]]
-  (doseq [name (->> (file-seq (io/file "resources/part-1-initial"))
+  (doseq [name (->> (file-seq (io/file "problems"))
                  (map #(.getPath %))
                  (filter #(str/ends-with? % ".desc"))
                  (map #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
