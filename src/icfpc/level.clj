@@ -18,12 +18,15 @@
       (let [x' (+ x dx) y' (+ y dy)]
         (if (or (neg? x') (neg? y') (>= x' width) (>= y' height))
           level
-          (set-level level x' y' WRAPPED))))
+          (let [before (get-level level x' y')]
+            (if (= EMPTY before)
+              (set-level level x' y' WRAPPED)
+              level)))))
     level
     (:bot/layout level)))
 
 (def prob-001
-  {:level/width  8
+  {:level/width  7
    :level/height 3
    :level/grid [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
                 EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY

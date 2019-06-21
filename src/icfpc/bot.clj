@@ -6,25 +6,28 @@
 
 ;; movement
 
+(defn valid? [{:keys [bot/x bot/y level/width level/height]}]
+  (and (< -1 x width) (< -1 y height)))
+
 (defn- shift-point [[x y] dir]
   (case dir
-    :up [x (inc y)]
-    :down [x (dec y)]
-    :right [(inc x) y]
-    :left [(dec x) y]))
+    UP    [x (inc y)]
+    DOWN  [x (dec y)]
+    RIGHT [(inc x) y]
+    LEFT  [(dec x) y]))
 
 (defn- valid-moves [{:bot/keys [x y layout boosts]
-                     :level/keys [grid w h] :as level}]
+                     :level/keys [grid width height] :as level}]
   (filterv
    (fn [dir]
      (let [[x y] (shift-point [x y] dir)]
        (and (<= 0 x)
             (<= 0 y)
-            (< x w)
-            (< y h)
-            (not= (at-coord level x y)
+            (< x width)
+            (< y height)
+            (not= (get-level level x y)
                   OBSTACLE))))
-   [:up :down :left :right]))
+   [UP DOWN LEFT RIGHT]))
 
 (defn- shape->abs [x y layout]
   (mapv
@@ -33,13 +36,13 @@
       (+ y y')])
    layout))
 
-(defn- get-score [x y {:level/keys [grid w h] :as level}]
+(defn- get-score [x y {:level/keys [grid width height] :as level}]
   (if (or (< x 0)
           (< y 0)
-          (<= w x)
-          (<= h y))
+          (<= width x)
+          (<= height y))
     0
-    (let [v (at-coord grid x y)]
+    (let [v (get-level grid x y)]
       (case v
         EMPTY 1
         OBSTACLE 0
@@ -49,8 +52,7 @@
         DRILL 1
         X_UNKNOWN_PERK 1))))
 
-(defn next-move [{:level/keys [grid w h]
-                  :bot/keys [x y layout boosts] :as level}]
+(defn next-move [{:bot/keys [x y layout boosts] :as level}]
   (max-key
    (fn [dir]
      (let [drone-shifted (mapv
@@ -63,63 +65,58 @@
                drone-shifted))))
    (valid-moves level)))
 
-(defn walk [level shape x y path]
-  (if (empty? path)
-    level
-    (let [[x' y'] (case (first path)
-                    \W [x (+ y 1)]
-                    \S [x (- y 1)]
-                    \A [(- x 1) y]
-                    \D [(+ x 1) y])]
-      (recur
-        (mark-level level x' y' shape)
-        shape
-        x' y' (next path)))))
+(defn move [level dx dy]
+  (-> level
+    (update :bot/x + dx)
+    (update :bot/y + dy)
+    (mark-wrapped)))
 
-(defn make-move-impl [queue covered level]
-  (let [[x y path] (peek queue)]
+(defn make-move-impl [queue covered orig-level]
+  (let [[{:level/keys [width height]
+          :bot/keys [x y] :as level} path] (peek queue)]
     (cond
       (empty? queue)
       nil
 
-      (or (neg? x) (neg? y) (>= x width) (>= y height)
+      (or (not (valid? level))
         (contains? covered [x y]))
-      (recur (pop queue) covered level)
+      (recur (pop queue) covered orig-level)
 
-      (= E (at-coord level x y))
-      [x y path]
+      (= EMPTY (get-level orig-level x y))
+      [level path]
 
       :else
       (recur
         (into queue 
-          [[x (+ y 1) (conj path \W)]
-           [(- x 1) y (conj path \A)]
-           [(+ x 1) y (conj path \D)]
-           [x (- y 1) (conj path \S)]])
-        (conj covered [x y]) level))))
+          [[(move level  0  1) (conj path UP)]
+           [(move level -1  0) (conj path DOWN)]
+           [(move level  1  0) (conj path RIGHT)]
+           [(move level  0 -1) (conj path LEFT)]])
+        (conj covered [x y])
+        orig-level))))
 
-(defn make-move [x y level]
-  (make-move-impl (queue [x y []]) #{} level))
+(defn make-move [level]
+  (make-move-impl (queue [level []]) #{} level))
 
-(defn queue [& xs]
-  (into clojure.lang.PersistentQueue/EMPTY xs))
-
-(defn print-level [level]
-  (doseq [y (range 0 height)]
+(defn print-level [{:level/keys [width height] :as level}]
+  (doseq [y (range (dec height) -1 -1)]
     (doseq [x (range 0 width)]
-      (print (at-coord level x y)))
+      (if (and (= x (:bot/x level)) (= y (:bot/y level)))
+        (print "!")
+        (print (get-level level x y))))
     (println))
   (println))
 
-(comment
-  (loop [x 0
-         y 0
-         path []
-         level (mark-level @*level 0 0 shape)]
-    (if-some [[x' y' path'] (make-move x y level)]
-      (let [level' (walk level shape x y path')]
-        (println (str "[" x "," y "] -> [" x' "," y "] via " (str/join path')))
+(defn solve [level]
+  (loop [path  []
+         level (mark-wrapped level)]
+    (if-some [[level' path'] (make-move level)]
+      (do
+        (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
         (print-level level')
-        (recur x' y' (into path path') level'))
-      (println "DONE")))
+        (recur (into path path') level'))
+      (println "DONE" (str/join path)))))
+
+(comment
+  (solve prob-001)
 )
