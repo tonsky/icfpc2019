@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2e181c6e-7d70-4417-8ccc-8fd7267141da" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/src/icfpc/bot.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/bot.clj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/icfpc/level.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/level.clj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/icfpc/parser.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/parser.clj" afterDir="false" />
     </list>
@@ -31,6 +30,36 @@
         </RuleState>
       </list>
     </option>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="Applet">
+      <option name="POLICY_FILE" value="$APPLICATION_HOME_DIR$/bin/appletviewer.policy" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="Application" factoryName="Application">
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="JUnit" factoryName="JUnit">
+      <option name="TEST_OBJECT" value="class" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="TestNG">
+      <option name="TEST_OBJECT" value="CLASS" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
+      <properties />
+      <listeners />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -96,7 +125,7 @@
     <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/core.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state>
-          <caret line="5238" column="6" selection-start-line="5238" selection-start-column="6" selection-end-line="5238" selection-end-column="6" />
+          <caret line="6787" column="6" selection-start-line="6787" selection-start-column="6" selection-end-line="6787" selection-end-column="6" />
         </state>
       </provider>
     </entry>
@@ -118,8 +147,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/parser.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="26" selection-start-line="26" selection-end-line="26" />
+        <state>
+          <caret line="23" column="13" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
         </state>
       </provider>
     </entry>

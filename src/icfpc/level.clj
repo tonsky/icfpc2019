@@ -39,16 +39,45 @@
 (defn bounds [points]
   (let [xs (map first points)
         ys (map second points)]
-    {:min-x (apply min xs)
-     :max-x (apply max xs)
-     :min-y (apply min ys)
-     :max-y (apply max ys)}))
+    [(inc (apply max xs)) (inc (apply max ys))]))
 
-(defn load-level-1 [name]
-  (let [{:keys [start level obstacles busters]} (parse-level name)]
-    (apply min (map first level))))
+(defn fill-line [level [[from-x from-y] [to-x to-y]] value]
+  (cond
+    (= from-x to-x)
+    (reduce level
+            (fn [level y]
+              (set-level level from-x y value))
+            (range (min from-y to-y) (inc (max from-y to-y))))
+
+    (= from-y to-y)
+    (reduce level
+            (fn [level x]
+              (set-level level x from-y value))
+            (range (min from-x to-x) (inc (max from-x to-x))))))
+
+(defn fill-poly [level corners value]
+  (let [corners (conj corners (first corners))]
+    (reduce fill-line
+            level
+            (partition 2 1 corners))))
+
+(defn load-level [name]
+  (let [{:keys [bot-point corners obstacles busters]} (parse-level name)
+        [width height] (bounds corners)
+        init-level {:level/width width
+                    :level/height height
+                    :level/grid (vec (repeat (* width height) EMPTY))
+                    :bot/x (first bot-point)
+                    :bot/y (second bot-point)
+                    :bot/layout [[0 0] [1 0] [1 1] [1 -1]]
+                    :bot/boosts {EXTRA_HAND 0
+                                 FAST_WHEELS 0
+                                 DRILL 0
+                                 X_UNKNOWN_PERK 0}}]
+    init-level))
 
 (comment
-  (def level (:level (parse-level "prob-150.desc")))
+  (partition 2 1 (vec (range 5)))
+  (def level (:corners (parse-level "prob-150.desc")))
   (bounds level)
   )
