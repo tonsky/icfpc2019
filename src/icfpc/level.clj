@@ -18,11 +18,13 @@
 
 (defn valid?
   ([x y {:level/keys [width height] :as level}]
-    (and (< -1 x width)
-      (< -1 y height)
-      (or
-       (is-booster-active level DRILL)
-       (not= OBSTACLE (get-level level x y)))))
+    (when (and
+            (< -1 x width)
+            (< -1 y height)
+            (or
+              (is-booster-active level DRILL)
+              (not= OBSTACLE (get-level level x y))))
+      level))
   ([{:bot/keys [x y] :as level}]
     (valid? x y level)))
 
@@ -46,42 +48,26 @@
           (update :bot/collected-boosters (fn [collected-boosters]
                                             (if (contains? collected-boosters booster)
                                               (update collected-boosters booster inc)
-                                              (assoc collected-boosters booster 1)))))
+                                              (assoc collected-boosters booster 1))))
+          (update :score + 100))
       level)))
 
+(def score-point {EMPTY       1
+                  OBSTACLE    0
+                  WRAPPED     0})
 
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
   [{:level/keys [boosters] :as level}]
   (reduce
     (fn [level [x y]]
-      (let [before (get-level level x y)
+      (let [before  (get-level level x y)
             booster (get boosters [x y])]
         (cond-> level
-          (= EMPTY before)
-          (set-level x y WRAPPED))))
+          (= EMPTY before) (set-level x y WRAPPED)
+          true             (update :score + (score-point before)))))
     (collect-booster level)
     (bot-covering level)))
-
-(def score-point {EMPTY       1
-                  OBSTACLE    0
-                  WRAPPED     0
-                  EXTRA_HAND  1
-                  FAST_WHEELS 1
-                  DRILL       1
-                  X_UNKNOWN_PERK 1})
-
-(defn is-booster? [c]
-  (or (= c EXTRA_HAND)
-      (= c FAST_WHEELS)
-      (= c DRILL)))
-
-(defn position-score [level path]
-  (reduce
-   (fn [score [x y]]
-     (+ score (score-point (get-level level x y))))
-   0
-   (bot-covering level)))
 
 (def prob-001
   {:level/width  7
@@ -228,7 +214,9 @@
                     :bot/y                  (second bot-point)
                     :bot/layout             [[0 0] [1 0] [1 1] [1 -1]]
                     :bot/collected-boosters {}
-                    :bot/active-boosters    {}}]
+                    :bot/active-boosters    {}
+                    :score                  0
+                    :path                   ""}]
     (fill-level init-level corners obstacles)))
 
 (comment
