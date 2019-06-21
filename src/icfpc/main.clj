@@ -6,12 +6,15 @@
    [clojure.java.io :as io]))
 
 (defn solve [name & [opts]]
-  (print "Solving" name "...")
-  (flush)
-  (let [level (level/load-level (str name ".desc"))
-        sln   (bot/solve level (merge {:debug? false} opts))]
-    (println " found" sln)
-    (spit (str "problems/" name ".sol") (:path sln))))
+  (try
+    (print "Solving" name "...")
+    (flush)
+    (let [level (level/load-level (str name ".desc"))
+          sln   (bot/solve level (merge {:debug? false} opts))]
+      (println " found" sln)
+      (spit (str "problems/" name ".sol") (:path sln)))
+    (catch Exception e
+      (.printStackTrace e))))
 
 (defn skip-till [n xs]
   (cond
@@ -20,16 +23,13 @@
     (number? n) (drop n xs)))
 
 (defn -main [& [skip]]
-  (doseq [name (->> (file-seq (io/file "problems"))
+  (let [names (->> (file-seq (io/file "problems"))
                  (map #(.getPath %))
                  (filter #(str/ends-with? % ".desc"))
                  (map #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
                  sort
                  (skip-till skip))]
-    (try
-      (solve name)
-      (catch Exception e
-        (.printStackTrace e)))))
+    (doall (pmap solve names))))
 
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))
