@@ -76,10 +76,10 @@
     (fn [layout]
       (mapv (fn [[dx dy]] [dy (- dx)]) layout))))
 
-(def max-path-len 3)
+(def ^:dynamic *max-path-len*)
 
 (defn act [level action]
-  (condp =
+  (condp = action
     UP         (move level 0 1)
     DOWN       (move level 0 -1)
     LEFT       (move level -1 0)
@@ -109,7 +109,7 @@
         (let [[level path score] (apply max-key lookahead-score paths)]
           [level path]))
 
-      (>= (count path) max-path-len)
+      (>= (count path) *max-path-len*)
       (recur
         (pop queue)
         (if (pos? score)
@@ -120,9 +120,7 @@
       (let [last-action (last path)
             moves (for [action [ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                         :when  (not= last-action (counter action))
-                        :let   [level' (act level action)
-                                ; _ (prn (dissoc level' :level/grid) (valid? level'))
-                                ]
+                        :let   [level' (act level action)]
                         :when  (valid? level')
                         :let   [path'  (conj path action)
                                 dscore (if-some [b (get (:level/boosters level) [(:bot/x level) (:bot/y level)])]
@@ -131,8 +129,7 @@
                                            (Thread/sleep 1000)
                                            100)
                                          (position-score level' path'))]
-                        ; :when  (pos? dscore)
-                        ]
+                        :when  (pos? dscore)]
                     [(mark-wrapped level') path' (+ score dscore)])]
         (recur
           (into (pop queue) moves)
@@ -217,24 +214,27 @@
     (println))
   (println))
 
-(defn solve [level & [{:keys [debug? delay lookahead?] :or {lookahead? true, debug? true, delay 50}}]]
-  (loop [path  []
-         level (mark-wrapped level)]
-    (if-some [[level' path'] (or 
-                               (when lookahead? (lookahead level))
-                               (make-move level))]
-      (do
-        (when debug?
-          (println "\033[2J")
-          (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
-          (print-level level')
-          (println (count (into path path')) "via" (str/join (into path path')))
-          (Thread/sleep delay))
-        (Thread/sleep 0)
-        (recur (into path path') level'))
-      (let [res (str/join path)]
-        (println "SCORE" (count res))
-        res))))
+(defn solve [level & [{:keys [debug? delay lookahead? max-path-len]
+                       :or {lookahead? true, debug? true, delay 50, max-path-len 3}}]]
+  (let [t0 (System/currentTimeMillis)]
+    (binding [*max-path-len* max-path-len]
+      (loop [path  []
+             level (mark-wrapped level)]
+        (if-some [[level' path'] (or 
+                                   (when lookahead? (lookahead level))
+                                   (make-move level))]
+          (do
+            (when debug?
+              (println "\033[2J")
+              (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
+              (print-level level')
+              (println (count (into path path')) "via" (str/join (into path path')))
+              (Thread/sleep delay))
+            (when-not (Thread/interrupted)
+              (recur (into path path') level')))
+          {:path  (str/join path)
+           :score (count path)
+           :time  (- (System/currentTimeMillis) t0)})))))
 
 (defn show-boosters [{:level/keys [boosters] :as level}]
   (let [level' (reduce (fn [level [[x y] kind]]
