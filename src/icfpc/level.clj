@@ -13,20 +13,36 @@
 (defn set-level [level x y value]
   (update level :level/grid assoc (coord->idx level x y) value))
 
+(defn valid?
+  ([x y {:level/keys [width height] :as level}]
+    (and (< -1 x width)
+      (< -1 y height)
+      (not (= OBSTACLE (get-level level x y)))))
+  ([{:bot/keys [x y] :as level}]
+    (valid? x y level)))
+
+(defn bot-covering [x y {:bot/keys [x y layout] :as level}]
+  (reduce 
+    (fn [acc [dx dy]]
+      (let [x' (+ x dx)
+            y' (+ y dy)]
+        (if (valid? x' y' level)
+          (conj acc [x' y'])
+          acc)))
+    []
+    layout))
+
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
   [{:bot/keys [x y layout] :level/keys [width height grid] :as level}]
   (reduce
-    (fn [level [dx dy]]
-      (let [x' (+ x dx) y' (+ y dy)]
-        (if (or (neg? x') (neg? y') (>= x' width) (>= y' height))
-          level
-          (let [before (get-level level x' y')]
-            (if (= EMPTY before)
-              (set-level level x' y' WRAPPED)
-              level)))))
+    (fn [level [x y]]
+      (let [before (get-level level x y)]
+        (if (= EMPTY before)
+          (set-level level x y WRAPPED)
+          level)))
     level
-    (:bot/layout level)))
+    (bot-covering x y level)))
 
 (def prob-001
   {:level/width  7
