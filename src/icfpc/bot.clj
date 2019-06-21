@@ -1,7 +1,8 @@
 (ns icfpc.bot
   (:require
    [clojure.string :as str]
-   [icfpc.core :refer :all]))
+   [icfpc.core :refer :all]
+   [icfpc.level :refer :all]))
 
 ;; movement
 
@@ -12,8 +13,8 @@
     :right [(inc x) y]
     :left [(dec x) y]))
 
-(defn- valid-moves [{:keys [grid w h] :as level}
-                    {:keys [x y layout boosts] :as bot}]
+(defn- valid-moves [{:bot/keys [x y layout boosts]
+                     :level/keys [grid w h] :as level}]
   (filterv
    (fn [dir]
      (let [[x y] (shift-point [x y] dir)]
@@ -21,7 +22,7 @@
             (<= 0 y)
             (< x w)
             (< y h)
-            (not= (at-coord grid x y)
+            (not= (at-coord level x y)
                   OBSTACLE))))
    [:up :down :left :right]))
 
@@ -32,7 +33,7 @@
       (+ y y')])
    layout))
 
-(defn get-score [x y {:keys [grid w h] :as level}]
+(defn- get-score [x y {:level/keys [grid w h] :as level}]
   (if (or (< x 0)
           (< y 0)
           (<= w x)
@@ -48,8 +49,8 @@
         DRILL 1
         X_UNKNOWN_PERK 1))))
 
-(defn next-move [{:keys [grid w h] :as level}
-                 {:keys [x y layout boosts] :as bot}]
+(defn next-move [{:level/keys [grid w h]
+                  :bot/keys [x y layout boosts] :as level}]
   (max-key
    (fn [dir]
      (let [drone-shifted (mapv
@@ -60,7 +61,7 @@
                 (fn [[x y]]
                      (get-score x y level))
                drone-shifted))))
-   (valid-moves level bot)))
+   (valid-moves level)))
 
 (defn walk [level shape x y path]
   (if (empty? path)

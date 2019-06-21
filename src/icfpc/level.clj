@@ -2,23 +2,29 @@
   (:require [icfpc.core :refer :all]
             [icfpc.parser :refer :all]))
 
-(defn coord->idx [x y] (+ x (* y width)))
+(defn coord->idx [level x y] (+ x (* y (:level/width level))))
 
-(defn at-coord [level x y]
-  (nth level (coord->idx x y)))
+(defn get-level [level x y]
+  (nth (:level/grid level) (coord->idx level x y)))
 
-(defn mark-level
-  ([level x y]
-    (if (or (neg? x) (neg? y) (>= x width) (>= y height))
-      level
-      (assoc level (coord->idx x y) WRAPPED)))
-  ([level x y shape]
-    (reduce (fn [level [dx dy]] (mark-level level (+ x dx) (+ y dy))) level shape)))
+(defn set-level [level x y value]
+  (update level :level/grid assoc (coord->idx level x y) value))
 
+(defn mark-wrapped
+  "Apply wrapped to what bot at current pos touches"
+  [{:bot/keys [x y layout] :level/keys [width height grid] :as level}]
+  (reduce
+    (fn [level [dx dy]]
+      (let [x' (+ x dx) y' (+ y dy)]
+        (if (or (neg? x') (neg? y') (>= x' width) (>= y' height))
+          level
+          (set-level level x' y' WRAPPED))))
+    level
+    (:bot/layout level)))
 
-(defn load-level [name]
-  {:level/w 8
-   :level/h 3
+(def prob-001
+  {:level/width  8
+   :level/height 3
    :level/grid [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
                 EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY
                 EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]
