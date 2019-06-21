@@ -54,7 +54,8 @@
 (defn make-move [level]
   (make-move-impl (queue [level []]) #{} level))
 
-(defn print-level [{:level/keys [width height] :as level}]
+(defn print-level [{:level/keys [width height name] :as level}]
+  (println name)
   (doseq [y (range (dec height) -1 -1)]
     (doseq [x (range 0 width)]
       (if (and (= x (:bot/x level)) (= y (:bot/y level)))
