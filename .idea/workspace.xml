@@ -5,7 +5,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/icfpc/bot.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/bot.clj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/icfpc/level.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/level.clj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/icfpc/parser.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/parser.clj" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -151,16 +150,6 @@
     <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-002.desc">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/icfpc/bot.clj">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="174" column="21" selection-start-line="174" selection-start-column="21" selection-end-line="174" selection-end-column="21" />
-          <folding>
-            <element signature="e#0#142#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/resources/solutions/submit.sh">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -174,19 +163,26 @@
     <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/core.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state>
-          <caret line="6787" column="6" selection-start-line="6787" selection-start-column="6" selection-end-line="6787" selection-end-column="6" />
+          <caret line="1497" column="6" selection-start-line="1497" selection-start-column="6" selection-end-line="1497" selection-end-column="6" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/level.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3240">
-          <caret line="218" column="48" selection-start-line="218" selection-start-column="48" selection-end-line="218" selection-end-column="48" />
+          <caret line="223" column="48" selection-start-line="223" selection-start-column="48" selection-end-line="223" selection-end-column="48" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-050.desc">
       <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/icfpc/bot.clj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1875">
+          <caret line="131" column="36" selection-start-line="131" selection-start-column="36" selection-end-line="131" selection-end-column="36" />
+        </state>
+      </provider>
     </entry>
   </component>
 </project>

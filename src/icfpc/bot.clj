@@ -125,7 +125,12 @@
                                 ]
                         :when  (valid? level')
                         :let   [path'  (conj path action)
-                                dscore (position-score level' path')]
+                                dscore (if-some [b (get (:level/boosters level) [(:bot/x level) (:bot/y level)])]
+                                         (do
+                                           (prn "BOOST!" (:bot/x level) (:bot/y level) (:level/boosters level))
+                                           (Thread/sleep 1000)
+                                           100)
+                                         (position-score level' path'))]
                         ; :when  (pos? dscore)
                         ]
                     [(mark-wrapped level') path' (+ score dscore)])]
@@ -180,16 +185,22 @@
 (defn make-move [level]
   (make-move-impl (queue [level [] 0 ]) #{[(:bot/x level) (:bot/y level)]}))
 
-(defn print-level [{:level/keys [width height name] :as level} & {:keys [colored?] :or {colored? true}}]
+(defn print-level [{:level/keys [width height name boosters] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
   (doseq [y (range (dec height) -1 -1)]
     (doseq [x (range 0 width)
-            :let [v (get-level level x y)]]
+            :let [v (get-level level x y)
+                  booster (get boosters [x y])]]
         (cond
           (and (= x (:bot/x level)) (= y (:bot/y level)))
           (if colored?
             (print "\033[37;1;41m☺\033[0m")
             (print "☺"))
+
+          (some? booster)
+          (if colored?
+            (print (str "\033[42m" booster "\033[0m"))
+            (print booster))
 
           (= v EMPTY)
           (if colored?
@@ -233,7 +244,7 @@
     (print-level level' :colored? false)))
 
 (comment
-  (print-level (load-level "prob-001.desc"))
+  (print-level (load-level "prob-001.desc") :colored? false)
   (show-boosters (load-level "prob-050.desc"))
   *e
 

@@ -37,6 +37,19 @@
     []
     layout))
 
+(defn collect-booster [{:level/keys [boosters] :as level}]
+  (let [booster (get boosters [(:bot/x level) (:bot/y level)])]
+    (if (some? booster)
+      (-> level
+          (update :level/boosters (fn [boosters]
+                                    (dissoc boosters [(:bot/x level) (:bot/y level)])))
+          (update :bot/collected-boosters (fn [collected-boosters]
+                                            (if (contains? collected-boosters booster)
+                                              (update collected-boosters booster inc)
+                                              (assoc collected-boosters booster 1)))))
+      level)))
+
+
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
   [{:level/keys [boosters] :as level}]
@@ -44,18 +57,10 @@
     (fn [level [x y]]
       (let [before (get-level level x y)
             booster (get boosters [x y])]
-        (-> level
-            (cond->
-              (= EMPTY before)
-              (set-level x y WRAPPED))
-            (cond->
-              (some? booster)
-              (-> (update :level/boosters dissoc [x y])
-                  (update :bot/collected-boosters (fn [boosters]
-                                                    (if (contains? boosters booster)
-                                                      (update boosters booster inc)
-                                                      (assoc boosters booster 1)))))))))
-    level
+        (cond-> level
+          (= EMPTY before)
+          (set-level x y WRAPPED))))
+    (collect-booster level)
     (bot-covering level)))
 
 (def score-point {EMPTY       1
@@ -72,13 +77,11 @@
       (= c DRILL)))
 
 (defn position-score [level path]
-  (if (is-booster? (last path))
-    -1
-    (reduce
-     (fn [score [x y]]
-       (+ score (score-point (get-level level x y))))
-     0
-     (bot-covering level))))
+  (reduce
+   (fn [score [x y]]
+     (+ score (score-point (get-level level x y))))
+   0
+   (bot-covering level)))
 
 (def prob-001
   {:level/width  7
