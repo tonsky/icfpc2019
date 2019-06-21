@@ -77,7 +77,8 @@
 (defn make-move [level]
   (make-move-impl (queue [level []]) #{[(:bot/x level) (:bot/y level)]} level))
 
-(defn print-level [{:level/keys [width height] :as level}]
+(defn print-level [{:level/keys [width height name] :as level}]
+  (println name)
   (doseq [y (range (dec height) -1 -1)]
     (doseq [x (range 0 width)
             :let [v (get-level level x y)]]
