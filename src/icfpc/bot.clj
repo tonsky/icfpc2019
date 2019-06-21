@@ -36,9 +36,10 @@
 ;           [x y] (apply max-key first (:bot/layout level))
           ]
       (when (some? p)
-        (-> level
+        [(-> level
             (update :bot/layout conj [x y])
-            (update-in [:bot/collected-boosters EXTRA_HAND] dec))))))
+            (update-in [:bot/collected-boosters EXTRA_HAND] dec))
+         (str "B(" x "," y ")")]))))
 
 (defn fast-wheel-on [level]
   (update level :bot/active-boosters assoc FAST_WHEELS 50))
@@ -89,12 +90,12 @@
 (defn act [level action]
   (condp = action
     EXTRA_HAND (add-extra-hand level)
-    UP         (move level 0 1)
-    DOWN       (move level 0 -1)
-    LEFT       (move level -1 0)
-    RIGHT      (move level 1 0)
-    ROTATE_CW  (rotate-cw level)
-    ROTATE_CCW (rotate-ccw level)))
+    UP         [(move level 0 1) UP]
+    DOWN       [(move level 0 -1) DOWN]
+    LEFT       [(move level -1 0) LEFT]
+    RIGHT      [(move level 1 0) RIGHT]
+    ROTATE_CW  [(rotate-cw level) ROTATE_CW]
+    ROTATE_CCW [(rotate-ccw level) ROTATE_CCW]))
 
 (def counter
   {LEFT RIGHT
@@ -129,10 +130,10 @@
       (let [last-action (last path)
             moves (for [action [EXTRA_HAND ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                         :when  (not= last-action (counter action))
-                        :let   [level' (act level action)]
+                        :let   [[level' action'] (act level action)]
                         :when  (some? level')
                         :when  (valid? level')
-                        :let   [path'  (conj path action)
+                        :let   [path'  (conj path action')
                                 booster (get (:level/boosters level) [(:bot/x level') (:bot/y level)])
                                 dscore (cond
                                          (= action EXTRA_HAND)
