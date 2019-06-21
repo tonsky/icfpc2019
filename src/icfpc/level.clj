@@ -29,3 +29,20 @@
                 FAST_WHEELS 0
                 DRILL 0
                 X_UNKNOWN_PERK 0}})
+
+(defn bounds [points]
+  (let [xs (map first points)
+        ys (map second points)]
+    {:min-x (apply min xs)
+     :max-x (apply max xs)
+     :min-y (apply min ys)
+     :max-y (apply max ys)}))
+
+(defn load-level-1 [name]
+  (let [{:keys [start level obstacles busters]} (parse-level name)]
+    (apply min (map first level))))
+
+(comment
+  (def level (:level (parse-level "prob-150.desc")))
+  (bounds level)
+  )

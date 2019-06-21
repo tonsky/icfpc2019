@@ -15,7 +15,7 @@
 
 (defn parse-buster [buster-str]
   (let [[type point-str] (split-at 1 buster-str)]
-    [type (first (parse-points point-str))]))
+    [(first type) (first (parse-points point-str))]))
 
 (defn parse-level [task-name]
   (let [description (slurp (str "resources/part-1-initial/" task-name))
@@ -24,4 +24,3 @@
      :level (parse-points level)
      :obstacles (mapv parse-points (filter not-empty (split obstacles #";")))
      :busters (mapv parse-buster (filter not-empty (split busters #";")))}))
-
