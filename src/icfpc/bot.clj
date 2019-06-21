@@ -10,7 +10,8 @@
 (s/def :level/grid (s/coll-of #{EMPTY OBSTACLE WRAPPED EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :kind vector?))
 (s/def :boosters/amount nat-int?)
 (s/def :boosters/ttl nat-int?)
-(s/def :bot/boosters (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/amount))
+(s/def :bot/collected-boosters
+       (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/amount))
 (s/def :bot/active-boosters (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/ttl))
 (s/def :bot/layout vector?)
 (s/def :bot/x nat-int?)
@@ -21,14 +22,14 @@
                :level/height
                :level/grid
 
-               :bot/boosters
+               :bot/collected-boosters
                :bot/active-boosters
                :bot/layout
                :bot/x
                :bot/y))
 
 (defn add-extra-hand [level]
-  (let [max-x (max-key first (:bot/layout level))]
+  (let [max-x (first (apply max-key first (:bot/layout level)))]
     (update level :bot/layout conj [(inc max-x) 0])))
 
 (defn fast-wheel-on [level]
@@ -44,7 +45,7 @@
     DRILL (drill-on level)))
 
 (defn has-available-booster [level booster]
-  (let [v (get (:bot/boosters level) booster)]
+  (let [v (get (:bot/collected-boosters level) booster)]
     (and (some? v)
          (< 0 v))))
 
@@ -106,7 +107,7 @@
                                                      [(activate-booster level DRILL) (conj path DRILL)])])
                          :when (valid? level')
                          :when (not (contains? seen [(:bot/x level') (:bot/y level')]))]
-                     [(mark-wrapped level') path' (+ score (position-score level'))])
+                     [(mark-wrapped level') path' (+ score (position-score level' path'))])
                    (sort-by (fn [[_ _ score]] score))
                    (reverse))]
         (recur

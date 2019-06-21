@@ -22,7 +22,7 @@
       (< -1 y height)
       (or
        (is-booster-active level DRILL)
-       (not (= OBSTACLE (get-level level x y))))))
+       (not= OBSTACLE (get-level level x y)))))
   ([{:bot/keys [x y] :as level}]
     (valid? x y level)))
 
@@ -39,13 +39,22 @@
 
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
-  [{:bot/keys [x y layout] :level/keys [width height grid] :as level}]
+  [{:bot/keys [x y layout collected-boosters] :level/keys [width height grid boosters] :as level}]
   (reduce
     (fn [level [x y]]
-      (let [before (get-level level x y)]
-        (if (= EMPTY before)
-          (set-level level x y WRAPPED)
-          level)))
+      (let [before (get-level level x y)
+            booster (get boosters [x y])]
+        (-> level
+            (cond->
+              (= EMPTY before)
+              (set-level x y WRAPPED))
+            (cond->
+              (some? booster)
+              (-> (update :level/boosters dissoc [x y])
+                  (update :bot/collected-boosters (fn [boosters]
+                                                    (if (contains? boosters booster)
+                                                      (update boosters booster inc)
+                                                      (assoc boosters booster 1)))))))))
     level
     (bot-covering x y layout level)))
 
@@ -57,12 +66,19 @@
                   DRILL       1
                   X_UNKNOWN_PERK 1})
 
-(defn position-score [{:bot/keys [x y layout] :level/keys [width height grid] :as level}]
-  (reduce
-   (fn [score [x y]]
-     (+ score (score-point (get-level level x y))))
-   0
-   (bot-covering x y layout level)))
+(defn is-booster? [c]
+  (or (= c EXTRA_HAND)
+      (= c FAST_WHEELS)
+      (= c DRILL)))
+
+(defn position-score [{:bot/keys [x y layout] :level/keys [width height grid] :as level} path]
+  (if (is-booster? (last path))
+    100500
+    (reduce
+     (fn [score [x y]]
+       (+ score (score-point (get-level level x y))))
+     0
+     (bot-covering x y layout level))))
 
 (def prob-001
   {:level/width  7
@@ -191,21 +207,26 @@
             level
             (range (:level/height level)))))
 
+(defn collect-boosters [boosters]
+    (into {}
+          (map (fn [[b [x y]]]
+                 [[x y] b]))
+          boosters))
+
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles busters]} (parser/parse-level name)
         [width height] (bounds corners)
-        init-level {:level/name name
-                    :level/busters busters
-                    :level/width width
-                    :level/height height
-                    :level/grid (vec (repeat (* width height) OBSTACLE))
-                    :bot/x (first bot-point)
-                    :bot/y (second bot-point)
-                    :bot/layout [[0 0] [1 0] [1 1] [1 -1]]
-                    :bot/boosts {EXTRA_HAND 0
-                                 FAST_WHEELS 0
-                                 DRILL 0
-                                 X_UNKNOWN_PERK 0}}]
+        init-level {:level/name             name
+                    :level/busters          busters
+                    :level/width            width
+                    :level/height           height
+                    :level/grid             (vec (repeat (* width height) OBSTACLE))
+                    :level/boosters         (collect-boosters busters)
+                    :bot/x                  (first bot-point)
+                    :bot/y                  (second bot-point)
+                    :bot/layout             [[0 0] [1 0] [1 1] [1 -1]]
+                    :bot/collected-boosters {}
+                    :bot/active-boosters    {}}]
     (fill-level init-level corners obstacles)))
 
 (comment
@@ -214,6 +235,9 @@
   (def lvls (mapv (fn [n]
                     (load-level (format "prob-%03d.desc" n)))
                   (range 1 51)))
+
+  (collect-boosters
+   (:busters (parser/parse-level "prob-004.desc")))
 
   (doseq [lvl lvls]
     (icfpc.bot/print-level lvl))
