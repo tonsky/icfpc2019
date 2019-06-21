@@ -1,6 +1,6 @@
 (ns icfpc.level
   (:require [icfpc.core :refer :all]
-            [icfpc.parser :refer :all]))
+            [icfpc.parser :as parser]))
 
 (defn coord->idx [level x y] (+ x (* y (:level/width level))))
 
@@ -130,27 +130,49 @@
                     dir2 (direction mid to)]
                 (case [dir1 dir2]
                   [:right :down]
-;                  (set-level level mid-x mid-y \A)
                   (fill-dfs level [mid-x mid-y] value)
 
                   [:up :right]
-;                  (set-level level (dec mid-x) mid-y \B)
                   (fill-dfs level [(dec mid-x) mid-y] value)
 
                   [:left :up]
-;                  (set-level level (dec mid-x) (dec mid-y) \C)
                   (fill-dfs level [(dec mid-x) (dec mid-y)] value)
 
                   [:down :left]
-;                  (set-level level mid-x (dec mid-y) \D)
                   (fill-dfs level [mid-x (dec mid-y)] value)
 
                   level)))
             level
             (partition 3 1 (into corners (take 2 corners))))))
 
+(defn vertical-segments [corners]
+  (let [segments (partition 2 1 (into corners (take 1 corners)))]
+    (keep (fn [[[from-x from-y] [to-x to-y]]]
+            (when (= from-x to-x)
+              {:x from-x
+               :from-y (min from-y to-y)
+               :to-y (max from-y to-y)}))
+          segments)))
+
+(defn fill-level [level corners obstacles]
+  (let [segments (sort-by :x (apply concat (into [(vertical-segments corners)] (map vertical-segments obstacles))))]
+    (reduce (fn [level y]
+              (let [xs (map :x (filter (fn [{:keys [from-y to-y]}]
+                                         (and (<= from-y y) (< y to-y)))
+                                       segments))
+                    rs (take-nth 2 (partition 2 1 xs))]
+                (reduce (fn [level [from-x to-x]]
+                          (reduce (fn [level x]
+                                    (set-level level x y EMPTY))
+                                  level
+                                  (range from-x to-x)))
+                        level
+                        rs)))
+            level
+            (range (:level/height level)))))
+
 (defn load-level [name]
-  (let [{:keys [bot-point corners obstacles busters]} (parse-level name)
+  (let [{:keys [bot-point corners obstacles busters]} (parser/parse-level name)
         [width height] (bounds corners)
         init-level {:level/name name
                     :level/busters busters
@@ -164,23 +186,23 @@
                                  FAST_WHEELS 0
                                  DRILL 0
                                  X_UNKNOWN_PERK 0}}]
-    (reduce (fn [level obs]
-              (fill-poly level obs OBSTACLE))
-            (fill-poly init-level corners EMPTY)
-            obstacles)))
-
-(def lvls (mapv (fn [n]
-                  (load-level (format "prob-%03d.desc" n)))
-                (range 1 51)))
+    (fill-level init-level corners obstacles)))
 
 (comment
+
+
+  (def lvls (mapv (fn [n]
+                    (load-level (format "prob-%03d.desc" n)))
+                  (range 1 51)))
+
   (doseq [lvl lvls]
     (icfpc.bot/print-level lvl))
 
-  *e
 
-  (:corners (parse-level "prob-002.desc"))
-  (icfpc.bot/print-level (load-level "prob-011.desc"))
+  (into [(vertical-segments corners)] (map vertical-segments obstacles))
+
+
+  (icfpc.bot/print-level (load-level "prob-150.desc"))
 
 
   )
