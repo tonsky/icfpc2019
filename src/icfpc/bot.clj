@@ -37,7 +37,7 @@
           ]
       (when (some? p)
         (-> level
-            (update :bot/layout conj [(inc x) y])
+            (update :bot/layout conj [x y])
             (update-in [:bot/collected-boosters EXTRA_HAND] dec))))))
 
 (defn fast-wheel-on [level]
@@ -238,7 +238,8 @@
           (do
             (when debug?
               (println "\033[2J")
-              (prn "Boosters: " (:bot/collected-boosters level))
+              (println "Boosters: " (:bot/collected-boosters level))
+              (println "Layout: " (:bot/layout level))
               (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
               (print-level level')
               (println (count (into path path')) "via" (str/join (into path path')))
