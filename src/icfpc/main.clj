@@ -9,7 +9,10 @@
   (try
     (println "Solving" name "...")
     (let [level (level/load-level (str name ".desc"))
-          sln   (bot/solve level (merge {:debug? false} opts))]
+          sln   (bot/solve level (merge
+                                   {:debug? false
+                                    :lookahead? (<= (:level/width level) 200)}
+                                   opts))]
       (println "Solved" name (dissoc sln :path))
       (spit (str "problems/" name ".sol") (:path sln)))
     (catch Exception e
