@@ -5,16 +5,38 @@
    [clojure.string :as str]
    [clojure.java.io :as io]))
 
-(defn -main [& args]
-  (doseq [path (->> (file-seq (io/file "resources/part-1-initial"))
+(defn solve [name]
+  (print "Solving" name "...")
+  (flush)
+  (let [level (level/load-level (str name ".desc"))
+        sln   (bot/solve level {:debug? false})]
+    (println " found" sln)
+    (spit (str "resources/solutions/" name ".sol") sln)))
+
+(defn skip-till [n xs]
+  (cond
+    (nil? n) xs
+    (string? n) (drop (Integer/parseInt n) xs)
+    (number? n) (drop n xs)))
+
+(defn -main [& [skip]]
+  (doseq [name (->> (file-seq (io/file "resources/part-1-initial"))
                  (map #(.getPath %))
                  (filter #(str/ends-with? % ".desc"))
-                 sort)]
+                 (map #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
+                 sort
+                 (skip-till skip))]
     (try
-      (let [[_ name] (re-matches #".*/(prob-\d\d\d)\.desc" path)
-            _        (println "Solving" name)
-            level    level/prob-001
-            sln      (bot/solve level false)]
-        (spit (str "resources/solutions/" name ".sol") sln))
+      (solve name)
       (catch Exception e
         (.printStackTrace e)))))
+
+(defn print-solve [name]
+  (bot/print-level (level/load-level (str name ".desc")))
+  (solve name))
+
+(comment
+  (icfpc.main/solve "prob-002")
+  (icfpc.main/print-solve "prob-002")
+  (icfpc.bot/solve (icfpc.level/load-level "prob-002.desc"))
+)

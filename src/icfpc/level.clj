@@ -68,19 +68,49 @@
         ys (map second points)]
     [(inc (apply max xs)) (inc (apply max ys))]))
 
+(defn direction [[from-x from-y] [to-x to-y]]
+  (cond
+    (and (= from-y to-y) (< from-x to-x))
+    :right
+
+    (and (= from-x to-x) (< from-y to-y))
+    :up
+
+    (and (= from-y to-y) (< to-x from-x))
+    :left
+
+    (and (= from-x to-x) (< to-y from-y))
+    :down))
+
 (defn fill-line [level [[from-x from-y] [to-x to-y]] value]
   (cond
-    (= from-x to-x)
-    (reduce (fn [level y]
-              (set-level level from-x y value))
-            level
-            (range (min from-y to-y) (inc (max from-y to-y))))
-
-    (= from-y to-y)
+    ;; left to right
+    (and (= from-y to-y) (< from-x to-x))
     (reduce (fn [level x]
               (set-level level x from-y value))
             level
-            (range (min from-x to-x) (inc (max from-x to-x))))))
+            (range from-x to-x))
+
+    ;; botom up
+    (and (= from-x to-x) (< from-y to-y))
+    (reduce (fn [level y]
+              (set-level level (dec from-x) y value))
+            level
+            (range from-y to-y))
+
+    ;; right to left
+    (and (= from-y to-y) (< to-x from-x))
+    (reduce (fn [level x]
+              (set-level level x (dec from-y) value))
+            level
+            (range to-x from-x))
+
+    ;; top down
+    (and (= from-x to-x) (< to-y from-y))
+    (reduce (fn [level y]
+              (set-level level from-x y value))
+            level
+            (range to-y from-y))))
 
 (defn fill-dfs [level [x y :as current] value]
   (if (and (valid-point? level current) (not= (get-level level x y) value))
@@ -92,32 +122,44 @@
           (fill-dfs [x (dec y)] value)))
     level))
 
+
+
 (defn fill-poly [level corners value]
-  (let [corners (conj corners (first corners))
-        level (reduce (fn [level [from to]]
+  (let [level (reduce (fn [level [from to]]
                         (fill-line level [from to] value))
                       level
-                      (partition 2 1 corners))]
-    (reduce (fn [level [[from-x from-y] [to-x to-y]]]
-              (cond
-                (and (= from-y to-y) (< from-x to-x))
-                (fill-dfs level [(inc from-x) (inc from-y)] value)
+                      (partition 2 1 (into corners (take 1 corners))))]
+    level
+    (reduce (fn [level [[from-x from-y :as from] [mid-x mid-y :as mid] [to-x to-y :as to]]]
+              (let [dir1 (direction from mid)
+                    dir2 (direction mid to)]
+                (case [dir1 dir2]
+                  [:right :down]
+;                  (set-level level mid-x mid-y \A)
+                  (fill-dfs level [mid-x mid-y] value)
 
-                (and (= from-x to-x) (< from-y to-y))
-                (fill-dfs level [(dec from-x) (inc from-y)] value)
+                  [:up :right]
+;                  (set-level level (dec mid-x) mid-y \B)
+                  (fill-dfs level [(dec mid-x) mid-y] value)
 
-                (and (= from-y to-y) (< to-x from-x))
-                (fill-dfs level [(dec from-x) (dec from-y)] value)
+                  [:left :up]
+;                  (set-level level (dec mid-x) (dec mid-y) \C)
+                  (fill-dfs level [(dec mid-x) (dec mid-y)] value)
 
-                (and (= from-x to-x) (< to-y from-y))
-                (fill-dfs level [(inc from-x) (dec from-y)] value)))
+                  [:down :left]
+;                  (set-level level mid-x (dec mid-y) \D)
+                  (fill-dfs level [mid-x (dec mid-y)] value)
+
+                  level)))
             level
-            (partition 2 1 corners))))
+            (partition 3 1 (into corners (take 2 corners))))))
 
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles busters]} (parse-level name)
         [width height] (bounds corners)
-        init-level {:level/width width
+        init-level {:level/name name
+                    :level/busters busters
+                    :level/width width
                     :level/height height
                     :level/grid (vec (repeat (* width height) OBSTACLE))
                     :bot/x (first bot-point)
@@ -132,20 +174,18 @@
             (fill-poly init-level corners EMPTY)
             obstacles)))
 
+(def lvls (mapv (fn [n]
+                  (load-level (format "prob-%03d.desc" n)))
+                (range 1 51)))
+
 (comment
-  *e
-
-  (:bot-point (parse-level "prob-010.desc"))
-  (:bot/x (parse-level "prob-010.desc"))
-  (def l (load-level "prob-002.desc"))
-  (:bot/x l)
-
-
-  (icfpc.bot/print-level l)
-
+  (doseq [lvl lvls]
+    (icfpc.bot/print-level lvl))
 
   *e
-  (partition 2 1 (vec (range 5)))
-  (def level (:corners (parse-level )))
-  (bounds level)
+
+  (:corners (parse-level "prob-002.desc"))
+  (icfpc.bot/print-level (load-level "prob-011.desc"))
+
+
   )

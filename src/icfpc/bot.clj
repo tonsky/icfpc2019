@@ -81,7 +81,7 @@
         (mark-wrapped)
         (update :bot/active-boosters update-boosters))))
 
-(defn make-move-impl [queue covered orig-level]
+(defn make-move-impl [queue seen orig-level]
   (let [[{:level/keys [width height]
           :bot/keys [x y] :as level} path] (peek queue)]
     (cond
@@ -92,56 +92,70 @@
       [level path]
 
       :else
-      (recur
-        (into (pop queue)
-          (->>
-            (for [[level' path'] (into [[(move level  0  1) (conj path UP)]
-                                        [(move level -1  0) (conj path DOWN)]
-                                        [(move level  1  0) (conj path RIGHT)]
-                                        [(move level  0 -1) (conj path LEFT)]]
-                                       (filter some?)
-                                       ;; we can always add additional hand, but no need to activate
-                                       ;; other boosters if we already have active one
-                                       [(when (has-available-booster level EXTRA_HAND)
-                                              [(activate-booster level EXTRA_HAND) (conj path EXTRA_HAND)])
-                                        (when (and (has-available-booster level FAST_WHEELS)
-                                                   (not (is-booster-active level FAST_WHEELS)))
-                                              [(activate-booster level FAST_WHEELS) (conj path FAST_WHEELS)])
-                                        (when (and (has-available-booster level DRILL)
-                                                   (is-booster-active level DRILL))
-                                              [(activate-booster level DRILL) (conj path DRILL)])])
-                  :when (valid? level')
-                  :when (not (contains? covered [(:bot/x level') (:bot/y level')]))]
-              [level' path'])
-            (sort-by (fn [[level' path']]
-                       (cond-> (score-bot (:bot/x level') (:bot/y level') (:bot/layout level') orig-level)
-                         ;; score intermediate values if fast wheels are on
-                         (is-booster-active orig-level FAST_WHEELS)
-                         (+ (score-bot (- (:bot/x level') ))))))
-            (reverse)))
-        (conj covered [x y])
-        orig-level))))
+      (let [moves (->>
+                    (for [[level' path'] (into [[(move level  0  1) (conj path UP)]
+                                                [(move level -1  0) (conj path DOWN)]
+                                                [(move level  1  0) (conj path RIGHT)]
+                                                [(move level  0 -1) (conj path LEFT)]]
+                                               (filter some?)
+                                               ;; we can always add additional hand, but no need to activate
+                                               ;; other boosters if we already have active one
+                                               [(when (has-available-booster level EXTRA_HAND)
+                                                      [(activate-booster level EXTRA_HAND) (conj path EXTRA_HAND)])
+                                                (when (and (has-available-booster level FAST_WHEELS)
+                                                           (not (is-booster-active level FAST_WHEELS)))
+                                                      [(activate-booster level FAST_WHEELS) (conj path FAST_WHEELS)])
+                                                (when (and (has-available-booster level DRILL)
+                                                           (is-booster-active level DRILL))
+                                                      [(activate-booster level DRILL) (conj path DRILL)])])
+                          :when (valid? level')
+                          :when (not (contains? seen [(:bot/x level') (:bot/y level')]))]
+                      [level' path'])
+                    (sort-by (fn [[level' path']]
+                               (cond-> (score-bot (:bot/x level') (:bot/y level') (:bot/layout level') orig-level)
+                                 ;; score intermediate values if fast wheels are on
+                                 (is-booster-active orig-level FAST_WHEELS)
+                                 (+ (score-bot (- (:bot/x level') ))))))
+                   (reverse))]
+        (recur
+          (into (pop queue) moves)
+          (into seen (map (fn [[level' path']] [(:bot/x level') (:bot/y level')]) moves))
+          orig-level)))))
 
 (defn make-move [level]
-  (make-move-impl (queue [level []]) #{} level))
+  (make-move-impl (queue [level []]) #{[(:bot/x level) (:bot/y level)]} level))
 
-(defn print-level [{:level/keys [width height] :as level}]
+(defn print-level [{:level/keys [width height name] :as level}]
+  (println name)
   (doseq [y (range (dec height) -1 -1)]
-    (doseq [x (range 0 width)]
-      (if (and (= x (:bot/x level)) (= y (:bot/y level)))
-        (print "☺")
-        (print (get-level level x y))))
+    (doseq [x (range 0 width)
+            :let [v (get-level level x y)]]
+        (cond
+          (and (= x (:bot/x level)) (= y (:bot/y level)))
+          (print "\033[37;1;41m☺\033[0m")
+
+          (= v EMPTY)
+          (print "\033[103m•\033[0m")
+
+          (= v WRAPPED)
+          (print "\033[43m+\033[0m")
+
+          :else
+          (print (get-level level x y))))
     (println))
   (println))
 
-(defn solve [level debug?]
+(defn solve [level & [{:keys [debug? delay] :or {debug? true delay 50}}]]
   (loop [path  []
          level (mark-wrapped level)]
     (if-some [[level' path'] (make-move level)]
       (do
         (when debug?
+          (println "\033[2J")
           (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
-          (print-level level'))
+          (print-level level')
+          (when (some? delay)
+            (Thread/sleep delay)))
         (recur (into path path') level'))
       (str/join path))))
 
