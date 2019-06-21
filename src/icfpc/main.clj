@@ -5,11 +5,11 @@
    [clojure.string :as str]
    [clojure.java.io :as io]))
 
-(defn solve [name]
+(defn solve [name & [opts]]
   (print "Solving" name "...")
   (flush)
   (let [level (level/load-level (str name ".desc"))
-        sln   (bot/solve level {:debug? false})]
+        sln   (bot/solve level (merge {:debug? false} opts))]
     (println " found" sln)
     (spit (str "resources/solutions/" name ".sol") sln)))
 
