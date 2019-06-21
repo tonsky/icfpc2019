@@ -76,10 +76,19 @@
     (fn [layout]
       (mapv (fn [[dx dy]] [dy (- dx)]) layout))))
 
-(def max-path-len 10)
+(def max-path-len 3)
+
+(defn act [level action]
+  (condp =
+    UP         (move level 0 1)
+    DOWN       (move level 0 -1)
+    LEFT       (move level -1 0)
+    RIGHT      (move level 1 0)
+    ROTATE_CW  (rotate-cw level)
+    ROTATE_CCW (rotate-ccw level)))
 
 (defn lookahead-impl [queue paths]
-  (let [[level path score seen] (peek queue)
+  (let [[level path score] (peek queue)
         {:level/keys [width height] :bot/keys [x y]} level]
     (cond
       (empty? queue)
@@ -91,28 +100,24 @@
       (recur (pop queue) (conj paths [level path score]))
 
       :else
-      (let [moves (for [[level' path'] [[(rotate-cw level)  (conj path ROTATE_CW)]
-                                        [(rotate-ccw level) (conj path ROTATE_CCW)]
-                                        [(move level  0  1) (conj path UP)]
-                                        [(move level  0 -1) (conj path DOWN)]
-                                        [(move level  1  0) (conj path RIGHT)]
-                                        [(move level -1  0) (conj path LEFT)]]
-                        :let [pos [(:bot/x level') (:bot/y level')]]
-                        :when (valid? level')
-                        :when (not (contains? seen pos))]
-                    [(mark-wrapped level') path' (+ score (position-score level')) (conj seen pos)])]
+      (let [moves (for [action [ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                        :let [level' (act level action)
+                              path'  (conj path action)
+                              pos    [(:bot/x level') (:bot/y level')]]
+                        :when (valid? level')]
+                    [(mark-wrapped level') path' (+ score (position-score level' path'))])]
         (recur
           (into (pop queue) moves)
           (conj paths [level path score]))))))
 
 (defn lookahead [level]
   (lookahead-impl
-    (queue [level [] 0 #{[(:bot/x level) (:bot/y level)]}])
+    (queue [level [] 0])
     (sorted-set-by (fn [[_ path score]
                         [_ path' score']]
-                     (compare
-                       [score' (count path')]
-                       [score (count path)])))))
+                     (compare ;; biggest score, shortest path
+                       [score' (- (count path'))]
+                       [score  (- (count path))])))))
 
 (defn make-move-impl [queue seen]
   (let [[{:level/keys [width height]
@@ -176,11 +181,11 @@
     (println))
   (println))
 
-(defn solve [level & [{:keys [debug? delay] :or {debug? true delay 50}}]]
+(defn solve [level & [{:keys [debug? delay lookahead?] :or {lookahead? true, debug? true, delay 50}}]]
   (loop [path  []
          level (mark-wrapped level)]
     (if-some [[level' path'] (or 
-                               (lookahead level)
+                               (when lookahead? (lookahead level))
                                (make-move level))]
       (do
         (when debug?

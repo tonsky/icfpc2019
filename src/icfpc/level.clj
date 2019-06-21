@@ -73,7 +73,7 @@
 
 (defn position-score [{:bot/keys [x y layout] :level/keys [width height grid] :as level} path]
   (if (is-booster? (last path))
-    100500
+    -1
     (reduce
      (fn [score [x y]]
        (+ score (score-point (get-level level x y))))
