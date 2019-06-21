@@ -131,13 +131,6 @@
     <entry file="file://$PROJECT_DIR$/src/icfpc/app.cljs">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/icfpc/core.clj">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="6" column="5" selection-start-line="6" selection-start-column="5" selection-end-line="6" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/parser.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-105">
@@ -161,7 +154,7 @@
     <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/core.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state>
-          <caret line="1869" column="10" selection-start-line="1869" selection-start-column="10" selection-end-line="1869" selection-end-column="10" />
+          <caret line="4986" column="6" selection-start-line="4986" selection-start-column="6" selection-end-line="4986" selection-end-column="6" />
         </state>
       </provider>
     </entry>
@@ -178,7 +171,21 @@
     <entry file="file://$PROJECT_DIR$/src/icfpc/bot.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1860">
-          <caret line="129" column="36" selection-start-line="129" selection-start-column="36" selection-end-line="129" selection-end-column="36" />
+          <caret line="144" column="36" selection-start-line="144" selection-start-column="36" selection-end-line="144" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/icfpc/core.clj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret line="8" column="5" selection-start-line="8" selection-start-column="5" selection-end-line="8" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/set.clj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret line="48" column="6" selection-start-line="48" selection-start-column="6" selection-end-line="48" selection-end-column="6" />
         </state>
       </provider>
     </entry>

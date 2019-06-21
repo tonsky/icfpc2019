@@ -29,8 +29,16 @@
                :bot/y))
 
 (defn add-extra-hand [level]
-  (let [max-x (first (apply max-key first (:bot/layout level)))]
-    (update level :bot/layout conj [(inc max-x) 0])))
+  (when (pos? (get (:bot/collected-boosters level) EXTRA_HAND 0))
+    (let [variants (clojure.set/difference #{[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]}
+                                           (:bot/layout level))
+          [x y :as p] (first variants) ;; square around the bot
+;           [x y] (apply max-key first (:bot/layout level))
+          ]
+      (when (some? p)
+        (-> level
+            (update :bot/layout conj [(inc x) y])
+            (update-in [:bot/collected-boosters EXTRA_HAND] dec))))))
 
 (defn fast-wheel-on [level]
   (update level :bot/active-boosters assoc FAST_WHEELS 50))
@@ -80,6 +88,7 @@
 
 (defn act [level action]
   (condp = action
+    EXTRA_HAND (add-extra-hand level)
     UP         (move level 0 1)
     DOWN       (move level 0 -1)
     LEFT       (move level -1 0)
@@ -118,13 +127,19 @@
 
       :else
       (let [last-action (last path)
-            moves (for [action [ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+            moves (for [action [EXTRA_HAND ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                         :when  (not= last-action (counter action))
                         :let   [level' (act level action)]
+                        :when  (some? level')
                         :when  (valid? level')
                         :let   [path'  (conj path action)
-                                dscore (if-some [b (get (:level/boosters level) [(:bot/x level') (:bot/y level)])]
+                                booster (get (:level/boosters level) [(:bot/x level') (:bot/y level)])
+                                dscore (cond
+                                         (= action EXTRA_HAND)
+                                         1000
+                                         (some? booster)
                                          100
+                                         :else
                                          (position-score level' path'))]
                         :when  (pos? dscore)]
                     [(mark-wrapped level') path' (+ score dscore)])]
@@ -217,7 +232,7 @@
     (binding [*max-path-len* max-path-len]
       (loop [path  []
              level (mark-wrapped level)]
-        (if-some [[level' path'] (or 
+        (if-some [[level' path'] (or
                                    (when lookahead? (lookahead level))
                                    (make-move level))]
           (do
