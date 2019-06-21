@@ -1,9 +1,9 @@
 (ns icfpc.core)
 
-(def E \E) ;; empty
-(def O \O) ;; obstacle
-(def W \W) ;; wrapped
-(def B \B) ;; extra hand
-(def F \F) ;; fast wheels
-(def L \L) ;; drill
-(def X \X) ;; ???
+(def EMPTY \E)
+(def OBSTACLE \O)
+(def WRAPPED \W)
+(def EXTRA_HAND \B)
+(def FAST_WHEELS \F)
+(def DRILL \L)
+(def X_UNKNOWN_PERK \X)
