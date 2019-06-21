@@ -78,8 +78,17 @@
         (update :bot/x + (cond-> dx FW? (* 2)))
         (update :bot/y + (cond-> dy FW? (* 2)))
         ;; todo smth with fast-wheels -- quiclky passed by nodes won't be colored
-        (mark-wrapped)
         (update :bot/active-boosters update-boosters))))
+
+(defn rotate-ccw [level]
+  (update level :bot/layout
+    (fn [layout]
+      (mapv (fn [[dx dy]] [(- dy) dx]) layout))))
+
+(defn rotate-cw [level]
+  (update level :bot/layout
+    (fn [layout]
+      (mapv (fn [[dx dy]] [dy (- dx)]) layout))))
 
 (defn make-move-impl [queue seen orig-level]
   (let [[{:level/keys [width height]
@@ -96,7 +105,9 @@
                     (for [[level' path'] (into [[(move level  0  1) (conj path UP)]
                                                 [(move level -1  0) (conj path DOWN)]
                                                 [(move level  1  0) (conj path RIGHT)]
-                                                [(move level  0 -1) (conj path LEFT)]]
+                                                [(move level  0 -1) (conj path LEFT)]
+                                                [(rotate-cw level)  (conj path ROTATE_CW)]
+                                                [(rotate-ccw level) (conj path ROTATE_CCW)]]
                                                (filter some?)
                                                ;; we can always add additional hand, but no need to activate
                                                ;; other boosters if we already have active one
@@ -110,7 +121,7 @@
                                                       [(activate-booster level DRILL) (conj path DRILL)])])
                           :when (valid? level')
                           :when (not (contains? seen [(:bot/x level') (:bot/y level')]))]
-                      [level' path'])
+                      [(mark-wrapped level') path'])
                     (sort-by (fn [[level' path']]
                                (cond-> (score-bot (:bot/x level') (:bot/y level') (:bot/layout level') orig-level)
                                  ;; score intermediate values if fast wheels are on

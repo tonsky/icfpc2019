@@ -15,3 +15,5 @@
 (def DOWN  \S)
 (def LEFT  \A)
 (def RIGHT \D)
+(def ROTATE_CW \E)
+(def ROTATE_CCW \Q)
