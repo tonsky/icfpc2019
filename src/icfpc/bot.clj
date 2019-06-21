@@ -27,21 +27,6 @@
                :bot/x
                :bot/y))
 
-(defn score-point [x y {:level/keys [width height] :as level}]
-  (get {EMPTY       1
-        OBSTACLE    0
-        WRAPPED     0
-        EXTRA_HAND  1
-        FAST_WHEELS 1
-        DRILL       1
-        X_UNKNOWN_PERK 1}
-    (get-level level x y)))
-
-(defn score-bot [x y layout level]
-  (reduce + 0
-    (->> (bot-covering x y layout level)
-      (map (fn [[x y]] (score-point x y level))))))
-
 (defn add-extra-hand [level]
   (let [max-x (max-key first (:bot/layout level))]
     (update level :bot/layout conj [(inc max-x) 0])))
@@ -90,51 +75,46 @@
     (fn [layout]
       (mapv (fn [[dx dy]] [dy (- dx)]) layout))))
 
-(defn make-move-impl [queue seen orig-level]
+(defn make-move-impl [queue seen]
   (let [[{:level/keys [width height]
-          :bot/keys [x y] :as level} path] (peek queue)]
+          :bot/keys [x y] :as level} path score] (peek queue)]
     (cond
       (empty? queue)
       nil
 
-      (= EMPTY (get-level orig-level x y))
-      [level path]
+      (< 0 score)
+      [level path score]
 
       :else
       (let [moves (->>
-                    (for [[level' path'] (into [[(move level  0  1) (conj path UP)]
-                                                [(move level -1  0) (conj path DOWN)]
-                                                [(move level  1  0) (conj path RIGHT)]
-                                                [(move level  0 -1) (conj path LEFT)]
-                                                [(rotate-cw level)  (conj path ROTATE_CW)]
-                                                [(rotate-ccw level) (conj path ROTATE_CCW)]]
-                                               (filter some?)
-                                               ;; we can always add additional hand, but no need to activate
-                                               ;; other boosters if we already have active one
-                                               [(when (has-available-booster level EXTRA_HAND)
-                                                      [(activate-booster level EXTRA_HAND) (conj path EXTRA_HAND)])
-                                                (when (and (has-available-booster level FAST_WHEELS)
-                                                           (not (is-booster-active level FAST_WHEELS)))
-                                                      [(activate-booster level FAST_WHEELS) (conj path FAST_WHEELS)])
-                                                (when (and (has-available-booster level DRILL)
-                                                           (is-booster-active level DRILL))
-                                                      [(activate-booster level DRILL) (conj path DRILL)])])
-                          :when (valid? level')
-                          :when (not (contains? seen [(:bot/x level') (:bot/y level')]))]
-                      [(mark-wrapped level') path'])
-                    (sort-by (fn [[level' path']]
-                               (cond-> (score-bot (:bot/x level') (:bot/y level') (:bot/layout level') orig-level)
-                                 ;; score intermediate values if fast wheels are on
-                                 (is-booster-active orig-level FAST_WHEELS)
-                                 (+ (score-bot (- (:bot/x level') ))))))
+                   (for [[level' path'] (into [[(move level  0  1) (conj path UP)]
+                                               [(move level -1  0) (conj path DOWN)]
+                                               [(move level  1  0) (conj path RIGHT)]
+                                               [(move level  0 -1) (conj path LEFT)]
+                                               [(rotate-cw level)  (conj path ROTATE_CW)]
+                                               [(rotate-ccw level) (conj path ROTATE_CCW)]]
+                                              (filter some?)
+                                              ;; we can always add additional hand, but no need to activate
+                                              ;; other boosters if we already have active one
+                                              [(when (has-available-booster level EXTRA_HAND)
+                                                     [(activate-booster level EXTRA_HAND) (conj path EXTRA_HAND)])
+                                               (when (and (has-available-booster level FAST_WHEELS)
+                                                          (not (is-booster-active level FAST_WHEELS)))
+                                                     [(activate-booster level FAST_WHEELS) (conj path FAST_WHEELS)])
+                                               (when (and (has-available-booster level DRILL)
+                                                          (is-booster-active level DRILL))
+                                                     [(activate-booster level DRILL) (conj path DRILL)])])
+                         :when (valid? level')
+                         :when (not (contains? seen [(:bot/x level') (:bot/y level')]))]
+                     [(mark-wrapped level') path' (+ score (position-score level'))])
+                   (sort-by (fn [[_ _ score]] score))
                    (reverse))]
         (recur
           (into (pop queue) moves)
-          (into seen (map (fn [[level' path']] [(:bot/x level') (:bot/y level')]) moves))
-          orig-level)))))
+          (into seen (map (fn [[level' _ _]] [(:bot/x level') (:bot/y level')]) moves)))))))
 
 (defn make-move [level]
-  (make-move-impl (queue [level []]) #{[(:bot/x level) (:bot/y level)]} level))
+  (make-move-impl (queue [level [] 0 ]) #{[(:bot/x level) (:bot/y level)]}))
 
 (defn print-level [{:level/keys [width height name] :as level}]
   (println name)
@@ -173,5 +153,3 @@
 (comment
   (solve prob-001 true)
 )
-
-*e

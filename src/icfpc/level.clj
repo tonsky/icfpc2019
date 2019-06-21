@@ -49,6 +49,21 @@
     level
     (bot-covering x y layout level)))
 
+(def score-point {EMPTY       1
+                  OBSTACLE    0
+                  WRAPPED     0
+                  EXTRA_HAND  1
+                  FAST_WHEELS 1
+                  DRILL       1
+                  X_UNKNOWN_PERK 1})
+
+(defn position-score [{:bot/keys [x y layout] :level/keys [width height grid] :as level}]
+  (reduce
+   (fn [score [x y]]
+     (+ score (score-point (get-level level x y))))
+   0
+   (bot-covering x y layout level)))
+
 (def prob-001
   {:level/width  7
    :level/height 3
