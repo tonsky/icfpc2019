@@ -36,7 +36,7 @@
   (solve name))
 
 (comment
-  (icfpc.main/solve "prob-002")
+  (icfpc.main/solve "prob-010")
   (icfpc.main/print-solve "prob-002")
-  (icfpc.bot/solve (icfpc.level/load-level "prob-002.desc"))
+  (icfpc.bot/solve (icfpc.level/load-level "prob-010.desc") {:delay 100})
 )
