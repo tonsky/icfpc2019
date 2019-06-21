@@ -88,9 +88,9 @@
       :else
       (let [moves (->>
                    (for [[level' path'] (into [[(move level  0  1) (conj path UP)]
-                                               [(move level -1  0) (conj path DOWN)]
+                                               [(move level  0 -1) (conj path DOWN)]
                                                [(move level  1  0) (conj path RIGHT)]
-                                               [(move level  0 -1) (conj path LEFT)]
+                                               [(move level -1  0) (conj path LEFT)]
                                                [(rotate-cw level)  (conj path ROTATE_CW)]
                                                [(rotate-ccw level) (conj path ROTATE_CCW)]]
                                               (filter some?)
@@ -145,6 +145,7 @@
           (println "\033[2J")
           (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
           (print-level level')
+          (println (str/join (into path path')))
           (when (some? delay)
             (Thread/sleep delay)))
         (recur (into path path') level'))
