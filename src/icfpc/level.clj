@@ -13,15 +13,20 @@
 (defn set-level [level x y value]
   (update level :level/grid assoc (coord->idx level x y) value))
 
+(defn is-booster-active [level booster]
+  (get (:bot/active-boosters level) booster))
+
 (defn valid?
   ([x y {:level/keys [width height] :as level}]
     (and (< -1 x width)
       (< -1 y height)
-      (not (= OBSTACLE (get-level level x y)))))
+      (or
+       (is-booster-active level DRILL)
+       (not (= OBSTACLE (get-level level x y))))))
   ([{:bot/keys [x y] :as level}]
     (valid? x y level)))
 
-(defn bot-covering [x y {:bot/keys [x y layout] :as level}]
+(defn bot-covering [x y layout level]
   (reduce 
     (fn [acc [dx dy]]
       (let [x' (+ x dx)
@@ -42,7 +47,22 @@
           (set-level level x y WRAPPED)
           level)))
     level
-    (bot-covering x y level)))
+    (bot-covering x y layout level)))
+
+(def score-point {EMPTY       1
+                  OBSTACLE    0
+                  WRAPPED     0
+                  EXTRA_HAND  1
+                  FAST_WHEELS 1
+                  DRILL       1
+                  X_UNKNOWN_PERK 1})
+
+(defn position-score [{:bot/keys [x y layout] :level/keys [width height grid] :as level}]
+  (reduce
+   (fn [score [x y]]
+     (+ score (score-point (get-level level x y))))
+   0
+   (bot-covering x y layout level)))
 
 (def prob-001
   {:level/width  7
