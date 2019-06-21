@@ -161,20 +161,26 @@
 (defn make-move [level]
   (make-move-impl (queue [level [] 0 ]) #{[(:bot/x level) (:bot/y level)]}))
 
-(defn print-level [{:level/keys [width height name] :as level}]
+(defn print-level [{:level/keys [width height name] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
   (doseq [y (range (dec height) -1 -1)]
     (doseq [x (range 0 width)
             :let [v (get-level level x y)]]
         (cond
           (and (= x (:bot/x level)) (= y (:bot/y level)))
-          (print "\033[37;1;41m☺\033[0m")
+          (if colored?
+            (print "\033[37;1;41m☺\033[0m")
+            (print "☺"))
 
           (= v EMPTY)
-          (print "\033[103m•\033[0m")
+          (if colored?
+            (print "\033[103m•\033[0m")
+            (print "•"))
 
           (= v WRAPPED)
-          (print "\033[43m+\033[0m")
+          (if colored?
+            (print "\033[43m+\033[0m")
+            (print "+"))
 
           :else
           (print (get-level level x y))))
@@ -200,6 +206,17 @@
         (println "SCORE" (count res))
         res))))
 
+(defn show-boosters [{:level/keys [boosters] :as level}]
+  (let [level' (reduce (fn [level [[x y] kind]]
+                         (set-level level x y kind))
+                       level
+                       boosters)]
+    (print-level level' :colored? false)))
+
 (comment
+  (print-level (load-level "prob-001.desc"))
+  (show-boosters (load-level "prob-050.desc"))
+  *e
+
   (solve prob-001 true)
 )

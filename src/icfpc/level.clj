@@ -214,14 +214,13 @@
           boosters))
 
 (defn load-level [name]
-  (let [{:keys [bot-point corners obstacles busters]} (parser/parse-level name)
+  (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
         init-level {:level/name             name
-                    :level/busters          busters
                     :level/width            width
                     :level/height           height
                     :level/grid             (vec (repeat (* width height) OBSTACLE))
-                    :level/boosters         (collect-boosters busters)
+                    :level/boosters         (collect-boosters boosters)
                     :bot/x                  (first bot-point)
                     :bot/y                  (second bot-point)
                     :bot/layout             [[0 0] [1 0] [1 1] [1 -1]]
@@ -237,7 +236,7 @@
                   (range 1 51)))
 
   (collect-boosters
-   (:busters (parser/parse-level "prob-004.desc")))
+   (:boosters (parser/parse-level "prob-050.desc")))
 
   (doseq [lvl lvls]
     (icfpc.bot/print-level lvl))

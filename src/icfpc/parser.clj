@@ -20,7 +20,12 @@
 (defn parse-level [task-name]
   (let [description (slurp (str "resources/part-1-initial/" task-name))
         [_ level start obstacles busters] (re-matches #"(.*)#(.*)#(.*)#(.*)" description)]
-    {:bot-point     (first (parse-points start))
-     :corners       (parse-points level)
-     :obstacles     (mapv parse-points (filter not-empty (split obstacles #";")))
-     :busters       (mapv parse-buster (filter not-empty (split busters #";")))}))
+    {:bot-point (first (parse-points start))
+     :corners   (parse-points level)
+     :obstacles (mapv parse-points (filter not-empty (split obstacles #";")))
+     :boosters  (mapv parse-buster (filter not-empty (split busters #";")))}))
+
+(comment
+  (:boosters (parse-level "prob-050.desc"))
+
+  )
