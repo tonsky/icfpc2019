@@ -1,8 +1,31 @@
 (ns icfpc.bot
   (:require
+   [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [icfpc.core :refer :all]
    [icfpc.level :refer :all]))
+
+(s/def :level/width nat-int?)
+(s/def :level/height nat-int?)
+(s/def :level/grid (s/coll-of #{EMPTY OBSTACLE WRAPPED EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :kind vector?))
+(s/def :boosters/amount nat-int?)
+(s/def :boosters/ttl nat-int?)
+(s/def :bot/boosters (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/amount))
+(s/def :bot/active-boosters (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/ttl))
+(s/def :bot/layout vector?)
+(s/def :bot/x nat-int?)
+(s/def :bot/y nat-int?)
+
+(s/def :frame/frame
+       (s/keys :level/width
+               :level/height
+               :level/grid
+
+               :bot/boosters
+               :bot/active-boosters
+               :bot/layout
+               :bot/x
+               :bot/y))
 
 (defn score-point [x y {:level/keys [width height] :as level}]
   (get {EMPTY       1
