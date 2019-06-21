@@ -130,8 +130,12 @@
 (comment
   *e
 
-  (:corners (parse-level "prob-010.desc"))
-  (def l (load-level "prob-010.desc"))
+  (:bot-point (parse-level "prob-010.desc"))
+  (:bot/x (parse-level "prob-010.desc"))
+  (def l (load-level "prob-002.desc"))
+  (:bot/x l)
+
+
   (icfpc.bot/print-level l)
 
 

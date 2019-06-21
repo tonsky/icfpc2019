@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2e181c6e-7d70-4417-8ccc-8fd7267141da" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/icfpc/bot.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/bot.clj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/icfpc/level.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/level.clj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/icfpc/parser.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/parser.clj" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -142,13 +141,6 @@
     <entry file="file://$PROJECT_DIR$/src/icfpc/app.cljs">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/icfpc/parser.clj">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="19" column="6" selection-start-line="19" selection-start-column="6" selection-end-line="19" selection-end-column="6" />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/core.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -158,8 +150,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/level.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-255">
-          <caret line="100" column="70" selection-start-line="100" selection-start-column="70" selection-end-line="100" selection-end-column="70" />
+        <state relative-caret-position="-180">
+          <caret line="112" column="60" selection-start-line="112" selection-start-column="60" selection-end-line="112" selection-end-column="60" />
           <folding>
             <element signature="e#0#93#0" expanded="true" />
           </folding>
@@ -175,11 +167,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/bot.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1470">
-          <caret line="98" column="13" selection-start-line="98" selection-start-column="13" selection-end-line="98" selection-end-column="13" />
+        <state relative-caret-position="795">
+          <caret line="54" column="13" selection-start-line="54" selection-start-column="13" selection-end-line="54" selection-end-column="13" />
           <folding>
             <element signature="e#0#112#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/icfpc/parser.clj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret line="25" column="20" selection-start-line="25" selection-start-column="20" selection-end-line="25" selection-end-column="20" />
         </state>
       </provider>
     </entry>
