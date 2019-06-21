@@ -7,6 +7,9 @@
 (defn get-level [level x y]
   (nth (:level/grid level) (coord->idx level x y)))
 
+(defn valid-point? [{:level/keys [width height] :as level} [x y]]
+  (and (< -1 x width) (< -1 y height)))
+
 (defn set-level [level x y value]
   (update level :level/grid assoc (coord->idx level x y) value))
 
@@ -47,20 +50,46 @@
 (defn fill-line [level [[from-x from-y] [to-x to-y]] value]
   (cond
     (= from-x to-x)
-    (reduce level
-            (fn [level y]
+    (reduce (fn [level y]
               (set-level level from-x y value))
+            level
             (range (min from-y to-y) (inc (max from-y to-y))))
 
     (= from-y to-y)
-    (reduce level
-            (fn [level x]
+    (reduce (fn [level x]
               (set-level level x from-y value))
+            level
             (range (min from-x to-x) (inc (max from-x to-x))))))
 
+(defn fill-dfs [level [x y :as current] value]
+  (if (and (valid-point? level current) (not= (get-level level x y) value))
+    (let [level (set-level level x y value)]
+      (-> level
+          (fill-dfs [(inc x) y] value)
+          (fill-dfs [x (inc y)] value)
+          (fill-dfs [(dec x) y] value)
+          (fill-dfs [x (dec y)] value)))
+    level))
+
 (defn fill-poly [level corners value]
-  (let [corners (conj corners (first corners))]
-    (reduce fill-line
+  (let [corners (conj corners (first corners))
+        level (reduce (fn [level [from to]]
+                        (fill-line level [from to] value))
+                      level
+                      (partition 2 1 corners))]
+    (reduce (fn [level [[from-x from-y] [to-x to-y]]]
+              (cond
+                (and (= from-y to-y) (< from-x to-x))
+                (fill-dfs level [(inc from-x) (inc from-y)] value)
+
+                (and (= from-x to-x) (< from-y to-y))
+                (fill-dfs level [(dec from-x) (inc from-y)] value)
+
+                (and (= from-y to-y) (< to-x from-x))
+                (fill-dfs level [(dec from-x) (dec from-y)] value)
+
+                (and (= from-x to-x) (< to-y from-y))
+                (fill-dfs level [(inc from-x) (dec from-y)] value)))
             level
             (partition 2 1 corners))))
 
@@ -69,7 +98,7 @@
         [width height] (bounds corners)
         init-level {:level/width width
                     :level/height height
-                    :level/grid (vec (repeat (* width height) EMPTY))
+                    :level/grid (vec (repeat (* width height) OBSTACLE))
                     :bot/x (first bot-point)
                     :bot/y (second bot-point)
                     :bot/layout [[0 0] [1 0] [1 1] [1 -1]]
@@ -77,10 +106,21 @@
                                  FAST_WHEELS 0
                                  DRILL 0
                                  X_UNKNOWN_PERK 0}}]
-    init-level))
+    (reduce (fn [level obs]
+              (fill-poly level obs OBSTACLE))
+            (fill-poly init-level corners EMPTY)
+            obstacles)))
 
 (comment
+  *e
+
+  (:corners (parse-level "prob-010.desc"))
+  (def l (load-level "prob-010.desc"))
+  (icfpc.bot/print-level l)
+
+
+  *e
   (partition 2 1 (vec (range 5)))
-  (def level (:corners (parse-level "prob-150.desc")))
+  (def level (:corners (parse-level )))
   (bounds level)
   )

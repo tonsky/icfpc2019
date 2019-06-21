@@ -79,7 +79,7 @@
       nil
 
       (or (not (valid? level))
-        (contains? covered [x y]))
+          (valid-point? covered [x y]))
       (recur (pop queue) covered orig-level)
 
       (= EMPTY (get-level orig-level x y))
