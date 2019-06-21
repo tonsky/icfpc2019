@@ -18,7 +18,7 @@
     [(first type) (first (parse-points point-str))]))
 
 (defn parse-level [task-name]
-  (let [description (slurp (str "resources/part-1-initial/" task-name))
+  (let [description (slurp (str "problems/" task-name))
         [_ level start obstacles busters] (re-matches #"(.*)#(.*)#(.*)#(.*)" description)]
     {:bot-point     (first (parse-points start))
      :corners       (parse-points level)

@@ -121,11 +121,16 @@
             moves (for [action [ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                         :when  (not= last-action (counter action))
                         :let   [level' (act level action)
-                                path'  (conj path action)]
-                        :when  (valid? level')]
-                    [(mark-wrapped level') path' (+ score (position-score level' path'))])]
+                                ; _ (prn (dissoc level' :level/grid) (valid? level'))
+                                ]
+                        :when  (valid? level')
+                        :let   [path'  (conj path action)
+                                dscore (position-score level' path')]
+                        ; :when  (pos? dscore)
+                        ]
+                    [(mark-wrapped level') path' (+ score dscore)])]
         (recur
-          (reduce conj (pop queue) moves)
+          (into (pop queue) moves)
           (if (pos? score)
             (conj paths [level path score])
             paths))))))
@@ -207,8 +212,8 @@
           (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
           (print-level level')
           (println (count (into path path')) "via" (str/join (into path path')))
-          (when (some? delay)
-            (Thread/sleep delay)))
+          (Thread/sleep delay))
+        (Thread/sleep 0)
         (recur (into path path') level'))
       (let [res (str/join path)]
         (println "SCORE" (count res))
