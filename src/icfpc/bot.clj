@@ -75,6 +75,44 @@
     (fn [layout]
       (mapv (fn [[dx dy]] [dy (- dx)]) layout))))
 
+(def max-path-len 10)
+
+(defn lookahead-impl [queue paths]
+  (let [[level path score seen] (peek queue)
+        {:level/keys [width height] :bot/keys [x y]} level]
+    (cond
+      (empty? queue)
+      (when-some [[level path score] (first paths)]
+        (when (pos? score)
+          [level path]))
+
+      (>= (count path) max-path-len)
+      (recur (pop queue) (conj paths [level path score]))
+
+      :else
+      (let [moves (for [[level' path'] [[(rotate-cw level)  (conj path ROTATE_CW)]
+                                        [(rotate-ccw level) (conj path ROTATE_CCW)]
+                                        [(move level  0  1) (conj path UP)]
+                                        [(move level  0 -1) (conj path DOWN)]
+                                        [(move level  1  0) (conj path RIGHT)]
+                                        [(move level -1  0) (conj path LEFT)]]
+                        :let [pos [(:bot/x level') (:bot/y level')]]
+                        :when (valid? level')
+                        :when (not (contains? seen pos))]
+                    [(mark-wrapped level') path' (+ score (position-score level')) (conj seen pos)])]
+        (recur
+          (into (pop queue) moves)
+          (conj paths [level path score]))))))
+
+(defn lookahead [level]
+  (lookahead-impl
+    (queue [level [] 0 #{[(:bot/x level) (:bot/y level)]}])
+    (sorted-set-by (fn [[_ path score]
+                        [_ path' score']]
+                     (compare
+                       [score' (count path')]
+                       [score (count path)])))))
+
 (defn make-move-impl [queue seen]
   (let [[{:level/keys [width height]
           :bot/keys [x y] :as level} path score] (peek queue)]
@@ -93,10 +131,11 @@
                                                [(move level -1  0) (conj path LEFT)]
                                                [(rotate-cw level)  (conj path ROTATE_CW)]
                                                [(rotate-ccw level) (conj path ROTATE_CCW)]]
-                                              (filter some?)
+                                              ; (filter some?)
                                               ;; we can always add additional hand, but no need to activate
                                               ;; other boosters if we already have active one
-                                              [(when (has-available-booster level EXTRA_HAND)
+                                              []
+                                              #_[(when (has-available-booster level EXTRA_HAND)
                                                      [(activate-booster level EXTRA_HAND) (conj path EXTRA_HAND)])
                                                (when (and (has-available-booster level FAST_WHEELS)
                                                           (not (is-booster-active level FAST_WHEELS)))
@@ -139,17 +178,21 @@
 (defn solve [level & [{:keys [debug? delay] :or {debug? true delay 50}}]]
   (loop [path  []
          level (mark-wrapped level)]
-    (if-some [[level' path'] (make-move level)]
+    (if-some [[level' path'] (or 
+                               (lookahead level)
+                               (make-move level))]
       (do
         (when debug?
           (println "\033[2J")
           (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
           (print-level level')
-          (println (str/join (into path path')))
+          (println (count (into path path')) "via" (str/join (into path path')))
           (when (some? delay)
             (Thread/sleep delay)))
         (recur (into path path') level'))
-      (str/join path))))
+      (let [res (str/join path)]
+        (println "SCORE" (count res))
+        res))))
 
 (comment
   (solve prob-001 true)
