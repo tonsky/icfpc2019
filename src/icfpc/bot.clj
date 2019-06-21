@@ -3,36 +3,6 @@
    [clojure.string :as str]
    [icfpc.core :refer :all]))
 
-(def *level
-  (atom
-    [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
-     EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY
-     EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]))
-
-(def start [0 0])
-(def shape [[0 0] [1 0] [1 1] [1 -1]])
-(def boosts {EXTRA_HAND 0
-             FAST_WHEELS 0
-             DRILL 0
-             X_UNKNOWN_PERK 0})
-
-(def width 8)
-(def height 3)
-
-(defn coord->idx [x y] (+ x (* y width)))
-
-(defn at-coord [level x y]
-  (nth level (coord->idx x y)))
-
-(defn mark-level
-  ([level x y]
-    (if (or (neg? x) (neg? y) (>= x width) (>= y height))
-      level
-      (assoc level (coord->idx x y) WRAPPED)))
-  ([level x y shape]
-    (reduce (fn [level [dx dy]] (mark-level level (+ x dx) (+ y dy))) level shape)))
-
-
 ;; movement
 
 (defn- shift-point [[x y] dir]
