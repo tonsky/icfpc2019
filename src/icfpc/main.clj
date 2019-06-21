@@ -11,7 +11,7 @@
   (let [level (level/load-level (str name ".desc"))
         sln   (bot/solve level (merge {:debug? false} opts))]
     (println " found" sln)
-    (spit (str "problems/" name ".sol") sln)))
+    (spit (str "problems/" name ".sol") (:path sln))))
 
 (defn skip-till [n xs]
   (cond
