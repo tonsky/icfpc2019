@@ -7,11 +7,10 @@
 
 (defn solve [name & [opts]]
   (try
-    (print "Solving" name "...")
-    (flush)
+    (println "Solving" name "...")
     (let [level (level/load-level (str name ".desc"))
           sln   (bot/solve level (merge {:debug? false} opts))]
-      (println " found" sln)
+      (println "Solved" name (dissoc sln :path))
       (spit (str "problems/" name ".sol") (:path sln)))
     (catch Exception e
       (.printStackTrace e))))
