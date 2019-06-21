@@ -123,11 +123,8 @@
                         :let   [level' (act level action)]
                         :when  (valid? level')
                         :let   [path'  (conj path action)
-                                dscore (if-some [b (get (:level/boosters level) [(:bot/x level) (:bot/y level)])]
-                                         (do
-                                           (prn "BOOST!" (:bot/x level) (:bot/y level) (:level/boosters level))
-                                           (Thread/sleep 1000)
-                                           100)
+                                dscore (if-some [b (get (:level/boosters level) [(:bot/x level') (:bot/y level)])]
+                                         100
                                          (position-score level' path'))]
                         :when  (pos? dscore)]
                     [(mark-wrapped level') path' (+ score dscore)])]
@@ -226,6 +223,7 @@
           (do
             (when debug?
               (println "\033[2J")
+              (prn "Boosters: " (:bot/collected-boosters level))
               (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "] via " (str/join path')))
               (print-level level')
               (println (count (into path path')) "via" (str/join (into path path')))
