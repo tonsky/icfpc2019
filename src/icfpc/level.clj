@@ -411,11 +411,6 @@
             (points-by-value level UNKNOWN))))
 
 
-
-*e
-(some? [])
-
-
 (comment
 
   (count (points-by-value lvl' EMPTY))
@@ -439,11 +434,10 @@
   (def puzzle (parser/parse-puzzle "puzzle.cond"))
   (def lvl (generate-level "puzzle.cond"))
 
-  *e
+  (def puzzle (parser/parse-puzzle "first.cond"))
+  (def lvl (generate-level "first.cond"))
+  (count (icfpc.writer/segments lvl))
 
-  lvl
-
-  *e
 
 
   (:width lvl)
@@ -451,6 +445,7 @@
 
   (icfpc.bot/print-level lvl :colored? false :max-w 1000 :max-h 1000)
 
+  (keys puzzle)
   (:t-size puzzle)
   (:v-min puzzle)
   (:v-max puzzle)
