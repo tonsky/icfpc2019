@@ -231,8 +231,29 @@
                     :bot/active-boosters    {}}]
     (fill-level init-level corners obstacles)))
 
-(comment
 
+(defn ray-path [from to]
+  (let [[from-x from-y :as from] (min-key first from to)
+        [to-x to-y :as to] (max-key first from to)]
+    (if (= from-x to-x)
+      (mapv (fn [y] [from-x y]) (range from-y (inc to-y)))
+      (let [k (/ (- to-y from-y) (- to-x from-x))]
+        (concat
+         (let [[low high] (sort [from-y (int (+ from-y 1/2 (* k 1/2)))])]
+           (map (fn [y] [from-x y]) (range low (inc high))))
+         (mapcat
+          (fn [dx]
+            (let [[low high] (sort [(int (+ from-y 1/2 (* k (- dx 1/2))))
+                                    (int (+ from-y 1/2 (* k (+ dx 1/2))))])]
+              (map (fn [y] [(+ from-x dx) y]) (range low (inc high)))))
+          (range 1 (- to-x from-x)))
+         (let [[low high] (sort [(int (- (+ to-y 1/2) (* k 1/2))) to-y])]
+           (map (fn [y] [to-x y]) (range low (inc high)))))))))
+
+
+(comment
+  (ray-path [1 1] [3 0])
+  (ray-path [1 1] [3 2])
 
   (def lvls (mapv (fn [n]
                     (load-level (format "prob-%03d.desc" n)))

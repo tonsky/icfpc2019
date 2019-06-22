@@ -35,10 +35,9 @@
           [x y :as p] (first variants) ;; square around the bot
 ;           [x y] (apply max-key first (:bot/layout level))
           ]
-      (when (some? p)
-        (-> level
-            (update :bot/layout conj [(inc x) y])
-            (update-in [:bot/collected-boosters EXTRA_HAND] dec))))))
+      (-> level
+          (cond-> (some? p) (update :bot/layout conj [(inc x) y]))
+          (update-in [:bot/collected-boosters EXTRA_HAND] dec)))))
 
 (defn fast-wheel-on [level]
   (update level :bot/active-boosters assoc FAST_WHEELS 50))
