@@ -31,7 +31,7 @@
 (defn add-extra-hand [level]
   (when (pos? (get (:bot/collected-boosters level) EXTRA_HAND 0))
     (let [variants (clojure.set/difference #{[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]}
-                                           (:bot/layout level))
+                                           (set (:bot/layout level)))
           [x y :as p] (first variants)]
       (when (some? p)
         (-> level
