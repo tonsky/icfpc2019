@@ -8,12 +8,12 @@
 
 (s/def :level/width nat-int?)
 (s/def :level/height nat-int?)
-(s/def :level/grid (s/coll-of #{EMPTY OBSTACLE WRAPPED EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :kind vector?))
+(s/def :level/grid (s/coll-of #{EMPTY OBSTACLE WRAPPED EXTRA_HAND FAST_WHEELS DRILL SPAWN} :kind vector?))
 (s/def :boosters/amount nat-int?)
 (s/def :boosters/ttl nat-int?)
 (s/def :bot/collected-boosters
-       (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/amount))
-(s/def :bot/active-boosters (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL X_UNKNOWN_PERK} :boosters/ttl))
+       (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL SPAWN} :boosters/amount))
+(s/def :bot/active-boosters (s/map-of #{EXTRA_HAND FAST_WHEELS DRILL SPAWN} :boosters/ttl))
 (s/def :bot/layout vector?)
 (s/def :bot/x nat-int?)
 (s/def :bot/y nat-int?)
@@ -50,7 +50,7 @@
       (when (some? p)
         (-> level
             (update :layout conj [x y])
-            (update-in [:collected-boosters EXTRA_HAND] dec)
+            (update :collected-boosters spend EXTRA_HAND)
             (update :score + 1000)
             (update :path str "B(" x "," y ")"))))))
 
@@ -61,7 +61,7 @@
   (when (and (pos? (get (:collected-boosters level) FAST_WHEELS 0))
           (not (fast? level)))
     (-> level
-      (update-in [:collected-boosters FAST_WHEELS] dec)
+      (update :collected-boosters spend FAST_WHEELS)
       (assoc-in [:active-boosters FAST_WHEELS] 51)
       (update :score + 1000)
       (update :path str FAST_WHEELS))))
@@ -73,7 +73,7 @@
   (when (and (pos? (get (:collected-boosters level) DRILL 0))
           (not (fast? level)))
     (-> level
-      (update-in [:collected-boosters DRILL] dec)
+      (update :collected-boosters spend DRILL)
       (assoc-in [:active-boosters DRILL] 31)
       (update :score + 1000)
       (update :path str DRILL))))
@@ -88,7 +88,7 @@
                   50))
             (:beakons level)))
     (-> level
-      (update-in [:collected-boosters TELEPORT] dec)
+      (update :collected-boosters spend TELEPORT)
       (update :beakons (fnil conj []) [(:x level) (:y level)])
       (update :score + 1000)
       (update :path str SET_BEAKON))))
@@ -225,7 +225,8 @@
               (into (pop queue) moves')
               (into seen (map (fn [l] [(:x l) (:y l)]) moves')))))))))
 
-(defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]
+(defn print-level [{:keys [width height name boosters x y] :as level} 
+                   & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]
   (println name)
   (doseq [y (range (min (dec height) (+ y max-h)) (dec (max 0 (- y max-h))) -1)]
     (doseq [x (range (max 0 (- x max-w)) (min width (+ x max-w)))

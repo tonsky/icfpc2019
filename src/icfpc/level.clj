@@ -1,17 +1,10 @@
 (ns icfpc.level
-  (:require [icfpc.core :refer :all]
-            [icfpc.parser :as parser]))
-
-(defn coord->idx [level x y] (+ x (* y (:width level))))
-
-(defn get-level [level x y]
-  (nth (:grid level) (coord->idx level x y)))
+  (:require
+   [icfpc.core :refer :all]
+   [icfpc.parser :as parser]))
 
 (defn valid-point? [{:keys [width height] :as level} [x y]]
   (and (< -1 x width) (< -1 y height)))
-
-(defn set-level [level x y value]
-  (update level :grid assoc (coord->idx level x y) value))
 
 (defn is-booster-active [level booster]
   (pos? (get (:active-boosters level) booster 0)))
@@ -104,11 +97,9 @@
       level)))
 
 (defn wear-off-boosters [level]
-  (let [fast-wheels (get-in level [:active-boosters FAST_WHEELS] 0)
-        drill       (get-in level [:active-boosters DRILL] 0)]
-    (cond-> level
-      (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec)
-      (pos? drill) (update-in [:active-boosters DRILL] dec))))
+  (-> level
+    (update :active-boosters spend FAST_WHEELS)
+    (update :active-boosters spend DRILL)))
 
 (defn score-point [level x y]
   (get {EMPTY    1
@@ -142,18 +133,15 @@
     (bot-covering level)))
 
 (def prob-001
-  {:width  7
+  {:width  8
    :height 3
-   :grid [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
-                EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY
-                EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]
+   :grid [EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
+          EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY    EMPTY
+          EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]
    :x 0
    :y 0
    :layout [[0 0] [1 0] [1 1] [1 -1]]
-   :boosts {EXTRA_HAND 0
-            FAST_WHEELS 0
-            DRILL 0
-            X_UNKNOWN_PERK 0}})
+   :boosters {}})
 
 (defn bounds [points]
   (let [xs (map first points)
