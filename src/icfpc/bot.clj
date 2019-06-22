@@ -271,9 +271,13 @@
               (when-not (Thread/interrupted)
                 (recur level' (System/currentTimeMillis))))
             (recur level' last-frame))
-          {:path  (:path level)
-           :score (path-score (:path level))
-           :time  (- (System/currentTimeMillis) t0)})))))
+          (let [res   {:path  (:path level)
+                       :score (path-score (:path level))
+                       :time  (- (System/currentTimeMillis) t0)}
+                empty (count (filter #(= EMPTY %) (:grid level)))]
+            (when (pos? empty)
+              (throw (Exception. (str "Left " empty " empty blocks: " (pr-str res)))))
+            res))))))
 
 (defn show-boosters [{:keys [boosters] :as level}]
   (let [level' (reduce (fn [level [[x y] kind]]
