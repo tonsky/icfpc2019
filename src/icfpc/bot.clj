@@ -166,7 +166,7 @@
 
           :else
           (let [last-action (last path)
-                moves (for [action [SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                moves (for [action [SET_BEAKON EXTRA_HAND FAST_WHEELS #_DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                             :when  (not= last-action (counter action))
                             :let   [level' (act level action)]
                             :when  (some? level')
@@ -189,7 +189,7 @@
 
           :else
           (let [moves (->>
-                        (for [action [:jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
+                        (for [action [:jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS #_DRILL RIGHT LEFT UP DOWN]
                               :let   [level' (act level action)]
                               :when  (some? level')
                               :when  (or (not (contains? #{:jump0 :jump1 :jump2 RIGHT LEFT UP DOWN} action))
