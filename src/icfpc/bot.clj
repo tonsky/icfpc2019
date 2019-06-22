@@ -40,12 +40,35 @@
             (update :score + 1000)
             (update :path str "B(" x "," y ")"))))))
 
+(defn fast? [level]
+  (pos? (get (:active-boosters level) FAST_WHEELS 0)))
+
+(defn add-fast-wheels [level]
+  (when (and (pos? (get (:collected-boosters level) FAST_WHEELS 0))
+          (not (fast? level)))
+    (-> level
+      (update-in [:collected-boosters FAST_WHEELS] dec)
+      (assoc-in [:active-boosters FAST_WHEELS] 51)
+      (update :score + 1000)
+      (update :path str FAST_WHEELS))))
+
+(defn extra-move [level dx dy]
+  (if (fast? level)
+    (let [level' (-> level
+                   (update :x + dx)
+                   (update :y + dy))]
+      (if (valid? level')
+        (mark-wrapped level')
+        level))
+    level))
+
 (defn move [level dx dy action]
   (some-> level
     (update :x + dx)
     (update :y + dy)
     (valid?)
     (mark-wrapped)
+    (extra-move dx dy)
     (update :path str action)))
 
 (defn rotate-ccw [level]
@@ -68,13 +91,14 @@
 
 (defn act [level action]
   (condp = action
-    EXTRA_HAND (add-extra-hand level)
-    UP         (move level 0 1 UP)
-    DOWN       (move level 0 -1 DOWN)
-    LEFT       (move level -1 0 LEFT)
-    RIGHT      (move level 1 0 RIGHT)
-    ROTATE_CW  (rotate-cw level)
-    ROTATE_CCW (rotate-ccw level)))
+    EXTRA_HAND  (add-extra-hand level)
+    FAST_WHEELS (add-fast-wheels level) 
+    UP          (move level 0 1 UP)
+    DOWN        (move level 0 -1 DOWN)
+    LEFT        (move level -1 0 LEFT)
+    RIGHT       (move level 1 0 RIGHT)
+    ROTATE_CW   (rotate-cw level)
+    ROTATE_CCW  (rotate-ccw level)))
 
 (def counter
   {LEFT RIGHT
@@ -103,12 +127,12 @@
 
           :else
           (let [last-action (last path)
-                moves (for [action [EXTRA_HAND ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                moves (for [action [EXTRA_HAND FAST_WHEELS ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                             :when  (not= last-action (counter action))
                             :let   [level' (act level action)]
                             :when  (some? level')
                             :when  (> (:score level') (:score level))]
-                        level')]
+                        (wear-off-boosters level'))]
             (recur (into (pop queue) moves) levels)))))))
 
 (defn make-move [level]
@@ -126,11 +150,11 @@
 
           :else
           (let [moves (->>
-                        (for [action [RIGHT LEFT UP DOWN]
+                        (for [action [FAST_WHEELS RIGHT LEFT UP DOWN] ;; EXTRA_HAND?
                               :let   [level' (act level action)]
                               :when  (some? level')
                               :when  (not (contains? seen [(:x level') (:y level')]))]
-                          level')
+                          (wear-off-boosters level'))
                         (sort-by :score)
                         (reverse))]
             (recur
@@ -169,7 +193,7 @@
     (println))
   (println))
 
-(defn solve [level & [{:keys [debug? lookahead? max-path-len]
+(defn solve [level & [{:keys [debug? lookahead? max-path-len delay]
                        :or {lookahead? true, debug? true, max-path-len 3}}]]
   (let [t0 (System/currentTimeMillis)]
     (binding [*max-path-len* max-path-len]
@@ -178,7 +202,9 @@
         (if-some [level' (or
                            (when lookahead? (lookahead level))
                            (make-move level))]
-          (if (and debug? (> (- (System/currentTimeMillis) last-frame) 200))
+          (if (and debug?
+                (or (some? delay)
+                  (> (- (System/currentTimeMillis) last-frame) 200)))
             (do
               (println "\033[2J")
               (print-level level')
@@ -186,6 +212,8 @@
               (println "Layout: " (:layout level))
               (println (str "[" (:x level) "," (:y level) "] -> [" (:x level') "," (:y level') "]"))
               (println (count (:path level')) "via" (:path level'))
+              (when (some? delay)
+                (Thread/sleep delay))
               (when-not (Thread/interrupted)
                 (recur level' (System/currentTimeMillis))))
             (recur level' last-frame))

@@ -52,9 +52,14 @@
           (update :score + 100))
       level)))
 
-(def score-point {EMPTY       1
-                  OBSTACLE    0
-                  WRAPPED     0})
+(defn wear-off-boosters [level]
+  (let [fast-wheels (get-in level [:active-boosters FAST_WHEELS] 0)]
+    (cond-> level
+      (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec))))
+
+(def score-point {EMPTY    1
+                  OBSTACLE 0
+                  WRAPPED  0})
 
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
@@ -66,7 +71,7 @@
         (cond-> level
           (= EMPTY before) (set-level x y WRAPPED)
           true             (update :score + (score-point before)))))
-    (collect-booster level)
+    (-> level collect-booster)
     (bot-covering level)))
 
 (def prob-001
@@ -79,9 +84,9 @@
    :y 0
    :layout [[0 0] [1 0] [1 1] [1 -1]]
    :boosts {EXTRA_HAND 0
-                FAST_WHEELS 0
-                DRILL 0
-                X_UNKNOWN_PERK 0}})
+            FAST_WHEELS 0
+            DRILL 0
+            X_UNKNOWN_PERK 0}})
 
 (defn bounds [points]
   (let [xs (map first points)
