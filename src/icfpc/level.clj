@@ -204,19 +204,7 @@
             level
             (range to-y from-y))))
 
-(defn fill-dfs [level [x y :as current] value]
-  (if (and (valid-point? level current) (not= (get-level level x y) value))
-    (let [level (set-level level x y value)]
-      (-> level
-          (fill-dfs [(inc x) y] value)
-          (fill-dfs [x (inc y)] value)
-          (fill-dfs [(dec x) y] value)
-          (fill-dfs [x (dec y)] value)))
-    level))
-
-
-
-(defn fill-poly [level corners value]
+#_(defn fill-poly [level corners value]
   (let [level (reduce (fn [level [from to]]
                         (fill-line level [from to] value))
                       level
@@ -321,24 +309,85 @@
         (recur (conj path current) parent (inc depth)))
       path)))
 
-(defn bfs [level [x y :as start]]
+(defn bfs [level [x y :as start] target block]
   (loop [q (queue start)
          parents {start nil}]
     (if-let [p (peek q)]
       (let [ns (filter (fn [[x y :as n]]
                          (and
                           (not (contains? parents n))
-                          (not= (get-level level x y) OBSTACLE)))
+                          (not= (get-level level x y) block)))
                        (neighbours level p))
             parents' (reduce (fn [ps n]
                                (assoc ps n p))
                              parents ns)
             finded (filter (fn [[x y :as n]]
-                             (= (get-level level x y) EMPTY)) ns)]
+                             (= (get-level level x y) target)) ns)]
         (if (not-empty finded)
           (build-path parents' (first finded))
           (recur (into (pop q) ns) parents')))
       (prn "CANT FIND PATH!"))))
+
+(defn fill-connected-component [level points target block]
+  (let [[i-x i-y]  (first points)
+        include-last (rest points)
+        level (reduce (fn [level next-include]
+                        (let [path (bfs level next-include target block)]
+                          (reduce (fn [level [px py]]
+                                    (set-level level px py target))
+                                  level
+                                  path)))
+                      (set-level level i-x i-y target)
+                      include-last)]
+    (reduce (fn [level [x y]]
+              (set-level level x y target))
+            level
+            points)))
+
+(defn fill-bfs [level [x y :as start] target block]
+  (loop [q (queue start)
+         parents {start nil}
+         level level]
+    (if-let [p (peek q)]
+      (let [ns (filter (fn [[x y :as n]]
+                         (and
+                          (not (contains? parents n))
+                          (not= (get-level level x y) block)))
+                       (neighbours level p))
+            parents' (reduce (fn [ps n]
+                               (assoc ps n p))
+                             parents ns)]
+        (recur (into (pop q) ns) parents' (reduce (fn [level [x y]]
+                                                    (set-level level x y target))
+                                                  level
+                                                  ns)))
+      level)))
+
+(defn points-by-value [level value]
+  (for [i (range 0 (:width level))
+        j (range 0 (:height level))
+        :when (= value (get-level level i j))]
+    [i j]))
+
+(defn min-area [t-size]
+  (int (Math/ceil (* 0.2 (* t-size t-size)))))
+
+(defn inflate [level]
+  (let [empty-fields (points-by-value level EMPTY)
+        borders (filter
+                 (fn [[x y]] (not= (get-level level x y) OBSTACLE))
+                 (clojure.set/difference (into #{} (mapcat #(neighbours level %) empty-fields))
+                                         (into #{} empty-fields)))]
+    (reduce
+     (fn [level [x y]]
+       (set-level level x y EMPTY))
+     level
+     borders)))
+
+(defn inflate-min-area [level min-area]
+  (if (< (count (points-by-value level EMPTY)) min-area)
+    (recur (inflate level) min-area)
+    level))
 
 (defn generate-level [puzzle-name]
   (let [puzzle (parser/parse-puzzle puzzle-name)
@@ -355,27 +404,56 @@
                     :active-boosters    {}
                     :score              0
                     :path               ""}
-        with-exclude (reduce (fn [level [x y]]
-                               (set-level level x y OBSTACLE))
-                             init-level
-                             (:exclude puzzle))
-        [i-x i-y]  (first (:include puzzle))
-        include-last (rest (:include puzzle))
-        level (reduce (fn [level next-include]
-                        (let [path (bfs level next-include)]
-                          (reduce (fn [level [px py]]
-                                    (set-level level px py EMPTY))
-                                  level
-                                  path)))
-                      (set-level with-exclude i-x i-y EMPTY)
-                      include-last)]
+        level (reduce (fn [level [x y]]
+                        (set-level level x y OBSTACLE))
+                      init-level
+                      (:exclude puzzle))
+        level (fill-connected-component level (:include puzzle) EMPTY OBSTACLE)
+        level (reduce
+               (fn [level [x y]]
+                 (set-level level x y UNKNOWN))
+               level
+               (:exclude puzzle))
+        level (fill-connected-component level (:exclude puzzle) OBSTACLE EMPTY)
+        level (inflate-min-area level (min-area (:t-size puzzle)))
+        level (fill-bfs level (last (:exclude puzzle)) OBSTACLE EMPTY)]
     (reduce (fn [level [x y]]
-              (set-level level x y EMPTY)) level (:include puzzle))))
+              (set-level level x y EMPTY))
+            level
+            (points-by-value level UNKNOWN))))
+
+
+
+*e
+(some? [])
 
 
 (comment
+
+  (count (points-by-value lvl' EMPTY))
+
+  (icfpc.bot/print-level lvl :colored? false :max-w 1000 :max-h 1000)
+
+#{:block-number
+  :epoch
+  :t-size
+  :v-min
+  :v-max
+  :extra-hands
+  :fast-wheels
+  :drills
+  :teleports
+  :cloning
+  :spawns
+  :include
+  :exclude}
+
   (def puzzle (parser/parse-puzzle "puzzle.cond"))
   (def lvl (generate-level "puzzle.cond"))
+
+  *e
+
+  lvl
 
   *e
 
