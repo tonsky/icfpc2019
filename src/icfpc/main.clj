@@ -44,7 +44,7 @@
     (log "Running" threads "threads")
     (doseq [name names]
       (.submit executor ^Callable
-        (fn [] (solve name {:t0 t0}))))))
+        (fn [] (solve name {:t0 t0 :lookahead? false}))))))
 
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))
