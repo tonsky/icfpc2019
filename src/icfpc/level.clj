@@ -303,6 +303,8 @@
         level (fill-level init-level corners obstacles)]
     (assoc level :weights (weights level))))
 
+
+
 (comment
   (= (ray-path [1 1] [3 0]) [[1 1] [2 0] [2 1] [3 0]])
   (= (ray-path [1 1] [3 2]) [[1 1] [2 1] [2 2] [3 2]])

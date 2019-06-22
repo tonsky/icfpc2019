@@ -25,7 +25,25 @@
      :obstacles (mapv parse-points (filter not-empty (split obstacles #";")))
      :boosters  (mapv parse-buster (filter not-empty (split busters #";")))}))
 
+(defn parse-puzzle [puzzle-name]
+  (let [description (slurp (str "puzzles/" puzzle-name))
+        [_ params include exclude] (re-matches #"(.*)#(.*)#(.*)" description)
+        [block-number epoch t-size v-min v-max extra-hands fast-wheels drills teleports cloning spawns] (split params #",")]
+    {:block-number block-number
+     :epoch epoch
+     :t-size t-size
+     :v-min v-min
+     :v-max v-max
+     :extra-hands extra-hands
+     :fast-wheels fast-wheels
+     :drills drills
+     :teleports teleports
+     :cloning cloning
+     :spawns spawns
+     :include (parse-points include)
+     :exclude (parse-points exclude)
+     }))
+
 (comment
-  (:boosters (parse-level "prob-050.desc"))
 
   )
