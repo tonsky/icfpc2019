@@ -44,7 +44,7 @@
 (defn take-till [to xs]
   (if (some? to) (take to xs) xs))
 
-(defn -main [& [from till]]
+(defn -main [& [from till threads]]
   (let [from  (cond-> from (string? from) (Integer/parseInt))
         till  (cond-> till (string? till) (Integer/parseInt))
         names (->> (file-seq (io/file "problems"))
@@ -56,7 +56,8 @@
                  (skip-till from)
                  (remove #(.exists (io/file (str "problems/" % ".sol")))))
         t0       (System/currentTimeMillis)
-        threads  (.. Runtime getRuntime availableProcessors)
+        threads  (or (cond-> threads (string? threads) (Integer/parseInt))
+                   (.. Runtime getRuntime availableProcessors))
         executor (java.util.concurrent.Executors/newFixedThreadPool threads)]
     (log "Running" threads "threads")
     (->
