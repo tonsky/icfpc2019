@@ -197,31 +197,40 @@
         queue     (java.util.ArrayDeque. [level])]
     (loop []
       (when-some [{:keys [x y] :as level} (.poll queue)]
+        (if-some [level' (or
+                           (add-extra-hand level)
+                           (add-drill level)
+                           (add-fast-wheels level)
+                           (set-beakon level))]
+          (do
+            (.add queue
+              (-> level'
+                (assoc :score min-score)
+                (wear-off-boosters)))
+            (recur))
+          (let [moves (for [action [:jump0 :jump1 :jump2 RIGHT LEFT UP DOWN]
+                            :when  (not (contains? *disabled* action))
+                            :let   [level' (act level action)]
+                            :when  (some? level')
+                            :when  (not (.contains seen [(:x level') (:y level')]))]
+                        level')]
+            (cond+
+              (empty? moves)
+              (do
+                (.add queue (-> level (act WAIT) (wear-off-boosters)))
+                (recur))
 
-        (let [moves (for [action [EXTRA_HAND DRILL FAST_WHEELS SET_BEAKON :jump0 :jump1 :jump2 RIGHT LEFT UP DOWN]
-                          :when  (not (contains? *disabled* action))
-                          :let   [level' (act level action)]
-                          :when  (some? level')
-                          :when  (or (= [x y] [(:x level') (:y level')])
-                                     (not (.contains seen [(:x level') (:y level')])))]
-                      level')]
-          (cond+
-            (empty? moves)
-            (do
-              (.add queue (-> level (act WAIT) (wear-off-boosters)))
-              (recur))
+              :let [the-move (seek #(or (== 0 (:empty %)) (> (:score %) min-score)) moves)]
 
-            :let [the-move (seek #(or (== 0 (:empty %)) (> (:score %) min-score)) moves)]
+              (some? the-move)
+              (wear-off-boosters the-move)
 
-            (some? the-move)
-            (wear-off-boosters the-move)
-
-            :else
-            (do
-              (doseq [move moves]
-                (.add seen [(:x move) (:y move)])
-                (.add queue (wear-off-boosters move)))
-              (recur))))))))
+              :else
+              (do
+                (doseq [move moves]
+                  (.add seen [(:x move) (:y move)])
+                  (.add queue (wear-off-boosters move)))
+                (recur)))))))))
 
 (defn print-level [{:keys [width height name boosters x y] :as level} 
                    & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]
