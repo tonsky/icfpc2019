@@ -84,3 +84,6 @@
        (map slurp)
        (map bot/path-score)
        (reduce + 0)))
+
+(defn mine-coins [& [block excluded puzzle task]]
+  (prn block excluded puzzle task))
