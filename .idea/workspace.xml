@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2e181c6e-7d70-4417-8ccc-8fd7267141da" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/src/icfpc/level.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/level.clj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/icfpc/bot.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/icfpc/bot.clj" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -108,9 +109,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/part-1-legend.txt">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/part-1-legend.txt" />
     <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/string.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -118,9 +117,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-132.desc">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-132.desc" />
     <entry file="file://$PROJECT_DIR$/project.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
@@ -131,12 +128,8 @@
     <entry file="file://$PROJECT_DIR$/src/icfpc/app.cljs">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-002.desc">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/resources/solutions/submit.sh">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-002.desc" />
+    <entry file="file://$PROJECT_DIR$/resources/solutions/submit.sh" />
     <entry file="file://$PROJECT_DIR$/src/icfpc/main.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="450">
@@ -147,17 +140,15 @@
     <entry file="jar://$APPLICATION_HOME_DIR$/onair-lib/clojure-1.10.0-fastload-SNAPSHOT.jar!/clojure/core.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state>
-          <caret line="835" column="10" selection-start-line="835" selection-start-column="10" selection-end-line="835" selection-end-column="10" />
+          <caret line="4098" column="6" selection-start-line="4098" selection-start-column="6" selection-end-line="4098" selection-end-column="6" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-050.desc">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/resources/part-1-initial/prob-050.desc" />
     <entry file="file://$PROJECT_DIR$/src/icfpc/bot.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2160">
-          <caret line="149" selection-start-line="149" selection-end-line="149" />
+        <state relative-caret-position="2415">
+          <caret line="186" selection-start-line="186" selection-end-line="186" />
         </state>
       </provider>
     </entry>
@@ -184,8 +175,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/level.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="390">
-          <caret line="69" column="13" selection-start-line="69" selection-start-column="13" selection-end-line="69" selection-end-column="13" />
+        <state relative-caret-position="2070">
+          <caret line="152" column="24" selection-start-line="152" selection-start-column="24" selection-end-line="152" selection-end-column="24" />
         </state>
       </provider>
     </entry>

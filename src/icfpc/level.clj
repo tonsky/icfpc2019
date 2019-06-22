@@ -74,8 +74,7 @@
             (< -1 x width)
             (< -1 y height)
             (not= OBSTACLE (get-level level x y))
-            ;;TODO check hand viz
-            )
+            (visible? level [x y] [(:x level) (:y level)]))
       level))
   ([{:keys [x y] :as level}]
     (valid? x y level)))

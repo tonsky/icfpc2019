@@ -28,11 +28,22 @@
                :bot/x
                :bot/y))
 
+(defn hand-place-variants [level]
+  (let [variants  (sort-by (fn [[x y]]
+                             (+ (Math/abs x) (Math/abs y)))
+                           (vec
+                            (clojure.set/difference
+                             (set (mapcat (fn [[x y]] [[x (inc y)]
+                                                       [x (dec y)]
+                                                       [(dec x) y]
+                                                       [(inc x) y]])
+                                          (:layout level)))
+                             (set (:layout level)))))]
+    (reverse variants)))
+
 (defn add-extra-hand [level]
   (when (pos? (get (:collected-boosters level) EXTRA_HAND 0))
-    (let [variants (clojure.set/difference #{[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]}
-                                           (set (:layout level)))
-          [x y :as p] (first variants)]
+    (let [[x y :as p] (first (hand-place-variants level))]
       (when (some? p)
         (-> level
             (update :layout conj [x y])
