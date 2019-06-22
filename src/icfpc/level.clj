@@ -219,7 +219,6 @@
                     :path                   ""}]
     (fill-level init-level corners obstacles)))
 
-
 (defn ray-path [from to]
   (let [[from-x from-y :as from] (min-key first from to)
         [to-x to-y :as to] (max-key first from to)]
@@ -242,6 +241,7 @@
 (comment
   (ray-path [1 1] [3 0])
   (ray-path [1 1] [3 2])
+  (ray-path [0 1] [3 0])
 
   (def lvls (mapv (fn [n]
                     (load-level (format "prob-%03d.desc" n)))
