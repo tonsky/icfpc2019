@@ -54,4 +54,12 @@
   (icfpc.main/solve "prob-010")
   (icfpc.main/print-solve "prob-002")
   (icfpc.bot/solve (icfpc.level/load-level "prob-010.desc") {:delay 100})
+  (icfpc.main/score-solutions "problems")
 )
+
+(defn score-solutions [path]
+  (->> (file-seq (io/file path))
+       (filter #(str/ends-with? (.getName %) ".sol"))
+       (map slurp)
+       (map bot/path-score)
+       (reduce + 0)))
