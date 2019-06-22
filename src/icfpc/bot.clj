@@ -208,10 +208,9 @@
             (do
               (println "\033[2J")
               (print-level level')
-              (println "Boosters: " (:collected-boosters level))
-              (println "Layout: " (:layout level))
-              (println (str "[" (:x level) "," (:y level) "] -> [" (:x level') "," (:y level') "]"))
-              (println (count (:path level')) "via" (:path level'))
+              (println "Active:" (:collected-boosters level) "collected:" (:active-boosters level))
+              (println "Hands:" (dec (count (:layout level))) "layout:" (:layout level))
+              (println "Score:" (count (:path level')))
               (when (some? delay)
                 (Thread/sleep delay))
               (when-not (Thread/interrupted)
