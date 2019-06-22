@@ -17,3 +17,17 @@
 (def RIGHT \D)
 (def ROTATE_CW \E)
 (def ROTATE_CCW \Q)
+
+(defn max-by [compare-fn xs]
+  (loop [max-key   (first xs)
+         max-value (compare-fn max-key)
+         xs        (next xs)]
+    (cond
+      (empty? xs)
+      max-key
+
+      (pos? (compare (compare-fn (first xs)) max-value))
+      (recur (first xs) (compare-fn (first xs)) (next xs))
+
+      :else
+      (recur max-key max-value (next xs)))))
