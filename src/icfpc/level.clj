@@ -422,14 +422,35 @@
             :when (not (exclude [x'' y'']))]
         [x'' y'']))))
 
+(defn add-edge-left [level segments puzzle]
+  (let [exclude (set (:exclude puzzle))]
+    (first
+      (for [[[x y] [x' y']] (map vector segments (next (cycle segments)))
+            :when (and (= x x') (> x 0) (< y' y) (>= (- y y') 3))
+            :let  [x'' (dec x)]
+            y''   (range (inc y') (dec y))
+            :when (not (exclude [x'' y'']))]
+        [x'' y'']))))
+
+(defn add-edge-right [level segments puzzle]
+  (let [exclude (set (:exclude puzzle))]
+    (first
+      (for [[[x y] [x' y']] (map vector segments (next (cycle segments)))
+            :when (and (= x x') (< x (:width level)) (< y y') (>= (- y' y) 3))
+            :let  [x'' x]
+            y''   (range (inc y) (dec y'))
+            :when (not (exclude [x'' y'']))]
+        [x'' y'']))))
+
 (defn add-edges [level puzzle]
   (let [segments (writer/segments level)]
     (if (>= (count segments) (:v-min puzzle))
       level
       (let [[x y] (or (add-edge-bottom level segments puzzle)
-                    (add-edge-top level segments puzzle)
+                    (add-edge-top   level segments puzzle)
+                    (add-edge-left  level segments puzzle)
+                    (add-edge-right level segments puzzle)
                     (throw (Exception. (str "Can’t add enough edges: has " (count segments) " need " (:v-min puzzle)))))]
-        (println "set" x y)
         (recur (set-level level x y EMPTY) puzzle)))))
 
 (defn generate-level [puzzle-name]
@@ -556,16 +577,20 @@
 
   (def test-level
     {:width  10
-     :height 4
+     :height 8
      :x 1
      :y 1
      :grid   [OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE 
               OBSTACLE EMPTY    EMPTY    EMPTY    OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE 
-              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE 
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
               OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE]})
 
   (def test-puzzle
-    {:v-min 25
+    {:v-min 44
      :exclude [[5 0] [2 3] [3 3]]})
 
   (icfpc.bot/print-level (icfpc.level/add-edges test-level test-puzzle))
