@@ -57,9 +57,16 @@
     (cond-> level
       (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec))))
 
-(def score-point {EMPTY    1
-                  OBSTACLE 0
-                  WRAPPED  0})
+(defn score-point [level x y]
+  (get {EMPTY    1
+        OBSTACLE 0
+        WRAPPED  0}
+    (get-level level x y)))
+
+(defn score-point' [level x y]
+  (if (= EMPTY (get-level level x y))
+    (max 1 (nth (:weights level) (coord->idx level x y)))
+    0))
 
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
@@ -70,7 +77,7 @@
             booster (get boosters [x y])]
         (cond-> level
           (= EMPTY before) (set-level x y WRAPPED)
-          true             (update :score + (score-point before)))))
+          true             (update :score + (score-point' level x y)))))
     (-> level collect-booster)
     (bot-covering level)))
 
@@ -207,6 +214,18 @@
                  [[x y] b]))
           boosters))
 
+(defn weights [{:keys [width height] :as level}]
+  (for [y (range 0 height)
+        x (range 0 width)]
+    (reduce + 0
+      (for [[dx dy] [[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]]
+            :let [x' (+ x dx)
+                  y' (+ y dy)]]
+        (if (or (< x' 0) (>= x' width) (< y' 0) (>= y' height)
+              (= (get-level level x' y') OBSTACLE))
+          1
+          0)))))
+
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
@@ -221,8 +240,9 @@
                     :collected-boosters {}
                     :active-boosters    {}
                     :score              0
-                    :path               ""}]
-    (fill-level init-level corners obstacles)))
+                    :path               ""}
+        level (fill-level init-level corners obstacles)]
+    (assoc level :weights (weights level))))
 
 
 (defn ray-path [from to]
