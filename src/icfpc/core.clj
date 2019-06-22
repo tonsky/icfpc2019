@@ -10,13 +10,16 @@
 (def FAST_WHEELS \F)
 (def DRILL \L)
 (def X_UNKNOWN_PERK \?)
+(def TELEPORT \R)
 
 (def UP    \W)
 (def DOWN  \S)
 (def LEFT  \A)
 (def RIGHT \D)
-(def ROTATE_CW \E)
+(def ROTATE_CW  \E)
 (def ROTATE_CCW \Q)
+(def SET_BEAKON \R)
+(def JUMP       \T)
 
 (defn max-by [compare-fn xs]
   (loop [max-key   (first xs)

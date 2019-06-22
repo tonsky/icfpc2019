@@ -84,11 +84,11 @@
     (if (some? booster)
       (-> level
           (update :boosters (fn [boosters]
-                                    (dissoc boosters [(:x level) (:y level)])))
+                              (dissoc boosters [(:x level) (:y level)])))
           (update :collected-boosters (fn [collected-boosters]
-                                            (if (contains? collected-boosters booster)
-                                              (update collected-boosters booster inc)
-                                              (assoc collected-boosters booster 1))))
+                                        (if (contains? collected-boosters booster)
+                                          (update collected-boosters booster inc)
+                                          (assoc collected-boosters booster 1))))
           (update :score + 100))
       level)))
 

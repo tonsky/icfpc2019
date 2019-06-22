@@ -64,6 +64,21 @@
       (update :score + 1000)
       (update :path str DRILL))))
 
+(defn set-beakon [level]
+  (when (and (pos? (get (:collected-boosters level) TELEPORT 0))
+          (not (contains? (:beakons level) [(:x level) (:y level)]))
+          (every?
+            (fn [[bx by]]
+              (>= (+ (Math/abs (- (:x level) bx))
+                     (Math/abs (- (:y level) by)))
+                  50))
+            (:beakons level)))
+    (-> level
+      (update-in [:collected-boosters TELEPORT] dec)
+      (update :beakons (fnil conj []) [(:x level) (:y level)])
+      (update :score + 1000)
+      (update :path str SET_BEAKON))))
+
 (defn extra-move [level dx dy]
   (if (fast? level)
     (let [level' (-> level
@@ -99,6 +114,13 @@
     (mark-wrapped)
     (update :path str ROTATE_CW)))
 
+(defn jump [level idx]
+  (when-some [[bx by] (nth (:beakons level) idx nil)]
+    (-> level
+      (assoc :x bx :y by)
+      (mark-wrapped)
+      (update :path str JUMP "(" bx "," by ")"))))
+
 (def ^:dynamic *max-path-len*)
 
 (defn act [level action]
@@ -106,6 +128,10 @@
     EXTRA_HAND  (add-extra-hand level)
     FAST_WHEELS (add-fast-wheels level) 
     DRILL       (add-drill level)
+    SET_BEAKON  (set-beakon level)
+    :jump0      (jump level 0)
+    :jump1      (jump level 1)
+    :jump2      (jump level 2)
     UP          (move level 0 1 UP)
     DOWN        (move level 0 -1 DOWN)
     LEFT        (move level -1 0 LEFT)
@@ -140,7 +166,7 @@
 
           :else
           (let [last-action (last path)
-                moves (for [action [EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                moves (for [action [SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                             :when  (not= last-action (counter action))
                             :let   [level' (act level action)]
                             :when  (some? level')
@@ -163,10 +189,11 @@
 
           :else
           (let [moves (->>
-                        (for [action [EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
+                        (for [action [:jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
                               :let   [level' (act level action)]
                               :when  (some? level')
-                              :when  (not (contains? seen [(:x level') (:y level')]))]
+                              :when  (or (not (contains? #{:jump0 :jump1 :jump2 RIGHT LEFT UP DOWN} action))
+                                         (not (contains? seen [(:x level') (:y level')])))]
                           (wear-off-boosters level'))
                         (sort-by :score)
                         (reverse))]
@@ -206,6 +233,9 @@
     (println))
   (println))
 
+(defn path-score [path]
+  (count (re-seq #"[A-Z]" path)))
+
 (defn solve [level & [{:keys [debug? lookahead? max-path-len delay]
                        :or {lookahead? true, debug? true, max-path-len 3}}]]
   (let [t0 (System/currentTimeMillis)]
@@ -221,16 +251,17 @@
             (do
               (println "\033[2J")
               (print-level level')
-              (println "Active:" (:collected-boosters level) "collected:" (:active-boosters level))
+              (println "Active:" (filter #(pos? (second %)) (:active-boosters level)) "collected:" (:collected-boosters level))
               (println "Hands:" (dec (count (:layout level))) "layout:" (:layout level))
-              (println "Score:" (count (:path level')))
+              (println "Beakons:" (:beakons level))
+              (println "Score:" (path-score (:path level')) #_#_"via" (:path level'))
               (when (some? delay)
                 (Thread/sleep delay))
               (when-not (Thread/interrupted)
                 (recur level' (System/currentTimeMillis))))
             (recur level' last-frame))
           {:path  (:path level)
-           :score (count (:path level))
+           :score (path-score (:path level))
            :time  (- (System/currentTimeMillis) t0)})))))
 
 (defn show-boosters [{:keys [boosters] :as level}]
