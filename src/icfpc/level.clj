@@ -142,18 +142,15 @@
     (bot-covering level)))
 
 (def prob-001
-  {:width  7
+  {:width  8
    :height 3
-   :grid [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
-                EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY
-                EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]
+   :grid [EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
+          EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY    EMPTY
+          EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]
    :x 0
    :y 0
    :layout [[0 0] [1 0] [1 1] [1 -1]]
-   :boosts {EXTRA_HAND 0
-            FAST_WHEELS 0
-            DRILL 0
-            X_UNKNOWN_PERK 0}})
+   :boosters {}})
 
 (defn bounds [points]
   (let [xs (map first points)
