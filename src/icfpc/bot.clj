@@ -143,6 +143,7 @@
     :jump0      (jump level 0)
     :jump1      (jump level 1)
     :jump2      (jump level 2)
+    WAIT        (update level :path str WAIT)
     UP          (move level 0 1 UP)
     DOWN        (move level 0 -1 DOWN)
     LEFT        (move level -1 0 LEFT)
@@ -195,12 +196,15 @@
           (empty? queue)
           nil
 
+          (== 0 (:empty level))
+          level
+
           (> score min-score)
           level
 
           :else
           (let [moves (->>
-                        (for [action [:jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS #_DRILL RIGHT LEFT UP DOWN]
+                        (for [action [WAIT :jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS #_DRILL RIGHT LEFT UP DOWN]
                               :let   [level' (act level action)]
                               :when  (some? level')
                               :when  (or (not (contains? #{:jump0 :jump1 :jump2 RIGHT LEFT UP DOWN} action))
@@ -214,7 +218,7 @@
 
 (defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
-  (doseq [y (range (min (dec height) (+ y 20)) (dec (max 0 (- y 20))) -1)]
+  (doseq [y (range (min (dec height) (+ y 30)) (dec (max 0 (- y 30))) -1)]
     (doseq [x (range (max 0 (- x 50)) (min width (+ x 50)))
             :let [v (get-level level x y)
                   booster (get boosters [x y])]]
@@ -248,14 +252,15 @@
   (count (re-seq #"[A-Z]" path)))
 
 (defn solve [level & [{:keys [debug? lookahead? max-path-len delay]
-                       :or {lookahead? true, debug? true, max-path-len 3}}]]
+                       :or {lookahead? true, debug? true, max-path-len 2}}]]
   (let [t0 (System/currentTimeMillis)]
     (binding [*max-path-len* max-path-len]
       (loop [level      (mark-wrapped level)
              last-frame (System/currentTimeMillis)]
-        (if-some [level' (or
-                           (when lookahead? (lookahead level))
-                           (make-move level))]
+        (if-some [level' (when (pos? (:empty level))
+                           (or
+                             (when lookahead? (lookahead level))
+                             (make-move level)))]
           (if (and debug?
                 (or (some? delay)
                   (> (- (System/currentTimeMillis) last-frame) 200)))
@@ -272,11 +277,12 @@
                 (recur level' (System/currentTimeMillis))))
             (recur level' last-frame))
           (let [res   {:path  (:path level)
+                       :empty (:empty level)
                        :score (path-score (:path level))
                        :time  (- (System/currentTimeMillis) t0)}
                 empty (count (filter #(= EMPTY %) (:grid level)))]
             (when (pos? empty)
-              (throw (Exception. (str "Left " empty " empty blocks: " (pr-str res)))))
+              (throw (Exception. (str (:name level) ": Left " empty " empty blocks: " (pr-str res)))))
             res))))))
 
 (defn show-boosters [{:keys [boosters] :as level}]

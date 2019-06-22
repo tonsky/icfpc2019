@@ -3,7 +3,9 @@
    [icfpc.bot :as bot]
    [icfpc.level :as level]
    [clojure.string :as str]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io])
+  (:import
+   [java.util.concurrent CompletableFuture]))
 
 (def log-agent (agent nil))
 
@@ -16,11 +18,11 @@
     (map #(io/file % (str name ".sol")))
     (filter #(.exists %))
     (map #(bot/path-score (slurp %)))
+    (distinct)
     (map #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
 (defn solve [name & [opts]]
   (try
-    ; (log "Solving" name "...")
     (let [level (level/load-level (str name ".desc"))
           sln   (bot/solve level (merge
                                    {:debug? false
@@ -32,7 +34,7 @@
            "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln))))
       (spit (str "problems/" name ".sol") (:path sln)))
     (catch Exception e
-      (.printStackTrace e))))
+      (println (.getMessage e)))))
 
 (defn skip-till [n xs]
   (if (some? n) (drop n xs) xs))
@@ -54,9 +56,16 @@
         threads  (.. Runtime getRuntime availableProcessors)
         executor (java.util.concurrent.Executors/newFixedThreadPool threads)]
     (log "Running" threads "threads")
-    (doseq [name names]
-      (.submit executor ^Callable
-        (fn [] (solve name {:t0 t0}))))))
+    (->
+      (into-array CompletableFuture
+        (for [name names]
+          (CompletableFuture/runAsync
+            ^Runnable (fn [] (solve name {:t0 t0}))
+            executor)))
+      (CompletableFuture/allOf)
+      (.join))
+    (log "DONE in" (- (System/currentTimeMillis) t0) " ms")
+    (.shutdown executor)))
 
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))

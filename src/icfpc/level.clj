@@ -135,7 +135,8 @@
       (let [before  (get-level level x y)
             booster (get boosters [x y])]
         (cond-> level
-          (= EMPTY before) (set-level x y WRAPPED)
+          (= EMPTY before) (-> (set-level x y WRAPPED)
+                               (update :empty dec))
           true             (update :score + (score-point' level x y)))))
     (-> level collect-booster drill)
     (bot-covering level)))
@@ -301,7 +302,9 @@
                     :score              0
                     :path               ""}
         level (fill-level init-level corners obstacles)]
-    (assoc level :weights (weights level))))
+    (assoc level
+      :weights (weights level)
+      :empty   (count (filter #(= EMPTY %) (:grid level))))))
 
 (comment
   (= (ray-path [1 1] [3 0]) [[1 1] [2 0] [2 1] [3 0]])
