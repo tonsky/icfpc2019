@@ -138,10 +138,10 @@
               (into (pop queue) moves)
               (into seen (map (fn [l] [(:bot/x l) (:bot/y l)]) moves)))))))))
 
-(defn print-level [{:level/keys [width height name boosters] :as level} & {:keys [colored?] :or {colored? true}}]
+(defn print-level [{:level/keys [width height name boosters] :bot/keys [x y] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
-  (doseq [y (range (dec height) -1 -1)]
-    (doseq [x (range 0 width)
+  (doseq [y (range (min (dec height) (+ y 20)) (dec (max 0 (- y 20))) -1)]
+    (doseq [x (range (max 0 (- x 50)) (min width (+ x 50)))
             :let [v (get-level level x y)
                   booster (get boosters [x y])]]
         (cond
@@ -170,25 +170,26 @@
     (println))
   (println))
 
-(defn solve [level & [{:keys [debug? delay lookahead? max-path-len]
-                       :or {lookahead? true, debug? true, delay 50, max-path-len 3}}]]
+(defn solve [level & [{:keys [debug? lookahead? max-path-len]
+                       :or {lookahead? true, debug? true, max-path-len 3}}]]
   (let [t0 (System/currentTimeMillis)]
     (binding [*max-path-len* max-path-len]
-      (loop [level (mark-wrapped level)]
+      (loop [level      (mark-wrapped level)
+             last-frame (System/currentTimeMillis)]
         (if-some [level' (or
                            (when lookahead? (lookahead level))
                            (make-move level))]
-          (do
-            (when debug?
+          (if (and debug? (> (- (System/currentTimeMillis) last-frame) 200))
+            (do
               (println "\033[2J")
+              (print-level level')
               (println "Boosters: " (:bot/collected-boosters level))
               (println "Layout: " (:bot/layout level))
               (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "]"))
-              (print-level level')
               (println (count (:path level')) "via" (:path level'))
-              (Thread/sleep delay))
-            (when-not (Thread/interrupted)
-              (recur level')))
+              (when-not (Thread/interrupted)
+                (recur level' (System/currentTimeMillis))))
+            (recur level' last-frame))
           {:path  (:path level)
            :score (count (:path level))
            :time  (- (System/currentTimeMillis) t0)})))))
