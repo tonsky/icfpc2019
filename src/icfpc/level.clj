@@ -101,7 +101,7 @@
 
 (defn score-point' [level x y]
   (if (= EMPTY (get-level level x y))
-    (max 1 (nth (:weights level) (coord->idx level x y)))
+    (max 1 (aget (:weights level) (coord->idx level x y)))
     0))
 
 (defn drill [{:keys [x y] :as level}]
@@ -237,22 +237,29 @@
             (range (:height level)))))
 
 (defn build-boosters [boosters]
-    (into {}
-          (map (fn [[b [x y]]]
-                 [[x y] b]))
-          boosters))
+  (into {}
+    (for [[b [x y]] boosters
+          :when (not= b SPAWN)]
+      [[x y] b])))
+
+(defn build-spawns [boosters]
+  (into #{}
+    (for [[b [x y]] boosters
+          :when (= b SPAWN)]
+      [x y])))
 
 (defn weights [{:keys [width height] :as level}]
-  (for [y (range 0 height)
-        x (range 0 width)]
-    (reduce + 0
-      (for [[dx dy] [[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]]
-            :let [x' (+ x dx)
-                  y' (+ y dy)]]
-        (if (or (< x' 0) (>= x' width) (< y' 0) (>= y' height)
-              (= (get-level level x' y') OBSTACLE))
-          1
-          0)))))
+  (short-array
+    (for [y (range 0 height)
+          x (range 0 width)]
+      (reduce + 0
+        (for [[dx dy] [[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]]
+              :let [x' (+ x dx)
+                    y' (+ y dy)]]
+          (if (or (< x' 0) (>= x' width) (< y' 0) (>= y' height)
+                (= (get-level level x' y') OBSTACLE))
+            1
+            0))))))
 
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
@@ -262,6 +269,7 @@
                     :height             height
                     :grid               (vec (repeat (* width height) OBSTACLE))
                     :boosters           (build-boosters boosters)
+                    :spawns             (build-spawns boosters)
                     :x                  (first bot-point)
                     :y                  (second bot-point)
                     :layout             [[0 0] [1 0] [1 1] [1 -1]]
