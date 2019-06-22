@@ -1,7 +1,8 @@
 (ns icfpc.level
   (:require
    [icfpc.core :refer :all]
-   [icfpc.parser :as parser]))
+   [icfpc.parser :as parser]
+   [icfpc.writer :as writer]))
 
 (defn valid-point? [{:keys [width height] :as level} [x y]]
   (and (< -1 x width) (< -1 y height)))
@@ -73,33 +74,25 @@
     (valid? x y level)))
 
 (defn bot-covering [{:keys [x y layout] :as level}]
-  (reduce 
-    (fn [acc [dx dy]]
-      (let [x' (+ x dx)
-            y' (+ y dy)]
-        (if (valid-hand? x' y' level)
-          (conj acc [x' y'])
-          acc)))
-    []
-    layout))
+  (for [[dx dy] layout
+        :let [x' (+ x dx) y' (+ y dy)]
+        :when (if (= [0 0] [dx dy])
+                (valid? x y level)
+                (valid-hand? x' y' level))]
+    [x' y']))
 
 (defn collect-booster [{:keys [boosters] :as level}]
-  (let [booster (get boosters [(:x level) (:y level)])]
-    (if (some? booster)
-      (-> level
-          (update :boosters (fn [boosters]
-                              (dissoc boosters [(:x level) (:y level)])))
-          (update :collected-boosters (fn [collected-boosters]
-                                        (if (contains? collected-boosters booster)
-                                          (update collected-boosters booster inc)
-                                          (assoc collected-boosters booster 1))))
-          (update :score + 100))
-      level)))
+  (if-some [booster (get boosters [(:x level) (:y level)])]
+    (-> level
+      (update :boosters dissoc [(:x level) (:y level)])
+      (update :collected-boosters update booster (fnil inc 0))
+      (update :score + 100))
+    level))
 
 (defn wear-off-boosters [level]
   (-> level
-    (update :active-boosters spend FAST_WHEELS)
-    (update :active-boosters spend DRILL)))
+    (spend :active-boosters FAST_WHEELS)
+    (spend :active-boosters DRILL)))
 
 (defn score-point [level x y]
   (get {EMPTY    1
@@ -109,7 +102,7 @@
 
 (defn score-point' [level x y]
   (if (= EMPTY (get-level level x y))
-    (max 1 (nth (:weights level) (coord->idx level x y)))
+    (max 1 (aget (:weights level) (coord->idx level x y)))
     0))
 
 (defn drill [{:keys [x y] :as level}]
@@ -245,22 +238,29 @@
             (range (:height level)))))
 
 (defn build-boosters [boosters]
-    (into {}
-          (map (fn [[b [x y]]]
-                 [[x y] b]))
-          boosters))
+  (into {}
+    (for [[b [x y]] boosters
+          :when (not= b SPAWN)]
+      [[x y] b])))
+
+(defn build-spawns [boosters]
+  (into #{}
+    (for [[b [x y]] boosters
+          :when (= b SPAWN)]
+      [x y])))
 
 (defn weights [{:keys [width height] :as level}]
-  (for [y (range 0 height)
-        x (range 0 width)]
-    (reduce + 0
-      (for [[dx dy] [[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]]
-            :let [x' (+ x dx)
-                  y' (+ y dy)]]
-        (if (or (< x' 0) (>= x' width) (< y' 0) (>= y' height)
-              (= (get-level level x' y') OBSTACLE))
-          1
-          0)))))
+  (short-array
+    (for [y (range 0 height)
+          x (range 0 width)]
+      (reduce + 0
+        (for [[dx dy] [[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]]
+              :let [x' (+ x dx)
+                    y' (+ y dy)]]
+          (if (or (< x' 0) (>= x' width) (< y' 0) (>= y' height)
+                (= (get-level level x' y') OBSTACLE))
+            1
+            0))))))
 
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
@@ -270,6 +270,7 @@
                     :height             height
                     :grid               (vec (repeat (* width height) OBSTACLE))
                     :boosters           (build-boosters boosters)
+                    :spawns             (build-spawns boosters)
                     :x                  (first bot-point)
                     :y                  (second bot-point)
                     :layout             [[0 0] [1 0] [1 1] [1 -1]]
@@ -401,6 +402,57 @@
   (let [[x y] (first (shuffle (points-by-value level EMPTY)))]
     (assoc level :x x :y y )))
 
+(defn add-edge-bottom [level segments puzzle]
+  (let [exclude (set (:exclude puzzle))]
+    (first
+      (for [[[x y] [x' y']] (map vector segments (next (cycle segments)))
+            :when (and (= y y') (> y 0) (< x x') (>= (- x' x) 3))
+            :let  [y'' (dec y)]
+            x''   (range (inc x) (dec x'))
+            :when (not (exclude [x'' y'']))]
+        [x'' y'']))))
+
+(defn add-edge-top [level segments puzzle]
+  (let [exclude (set (:exclude puzzle))]
+    (first
+      (for [[[x y] [x' y']] (map vector segments (next (cycle segments)))
+            :when (and (= y y') (< y (:height level)) (< x' x) (>= (- x x') 3))
+            :let  [y'' y]
+            x''   (range (inc x') (dec x))
+            :when (not (exclude [x'' y'']))]
+        [x'' y'']))))
+
+(defn add-edge-left [level segments puzzle]
+  (let [exclude (set (:exclude puzzle))]
+    (first
+      (for [[[x y] [x' y']] (map vector segments (next (cycle segments)))
+            :when (and (= x x') (> x 0) (< y' y) (>= (- y y') 3))
+            :let  [x'' (dec x)]
+            y''   (range (inc y') (dec y))
+            :when (not (exclude [x'' y'']))]
+        [x'' y'']))))
+
+(defn add-edge-right [level segments puzzle]
+  (let [exclude (set (:exclude puzzle))]
+    (first
+      (for [[[x y] [x' y']] (map vector segments (next (cycle segments)))
+            :when (and (= x x') (< x (:width level)) (< y y') (>= (- y' y) 3))
+            :let  [x'' x]
+            y''   (range (inc y) (dec y'))
+            :when (not (exclude [x'' y'']))]
+        [x'' y'']))))
+
+(defn add-edges [level puzzle]
+  (let [segments (writer/segments level)]
+    (if (>= (count segments) (:v-min puzzle))
+      level
+      (let [[x y] (or (add-edge-bottom level segments puzzle)
+                    (add-edge-top   level segments puzzle)
+                    (add-edge-left  level segments puzzle)
+                    (add-edge-right level segments puzzle)
+                    (throw (Exception. (str "Can’t add enough edges: has " (count segments) " need " (:v-min puzzle)))))]
+        (recur (set-level level x y EMPTY) puzzle)))))
+
 (defn generate-level [puzzle-name]
   (let [puzzle (parser/parse-puzzle puzzle-name)
         t-size (:t-size puzzle)
@@ -433,6 +485,7 @@
                         (set-level level x y EMPTY))
                       level
                       (points-by-value level UNKNOWN))
+        level (add-edges level puzzle)
         level (place-boosters level (select-keys puzzle [:extra-hands :fast-wheels :drills :teleports :cloning :spawns]))
         level (place-bot level)]
     level))
@@ -524,5 +577,23 @@
 
   (icfpc.bot/print-level (load-level "prob-150.desc"))
 
+  (def test-level
+    {:width  10
+     :height 8
+     :x 1
+     :y 1
+     :grid   [OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE 
+              OBSTACLE EMPTY    EMPTY    EMPTY    OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE 
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    EMPTY    OBSTACLE
+              OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE OBSTACLE]})
 
+  (def test-puzzle
+    {:v-min 44
+     :exclude [[5 0] [2 3] [3 3]]})
+
+  (icfpc.bot/print-level (icfpc.level/add-edges test-level test-puzzle))
   )

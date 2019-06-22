@@ -16,17 +16,17 @@
             points-seq))
     []))
 
-(defn parse-buster [buster-str]
+(defn parse-booster [buster-str]
   (let [[type point-str] (split-at 1 buster-str)]
     [(first type) (first (parse-points point-str))]))
 
 (defn parse-level [task-name]
   (let [description (clojure.string/trim (slurp (str "problems/" task-name)))
-        [_ level start obstacles busters] (re-matches #"(.*)#(.*)#(.*)#(.*)" description)]
+        [_ level start obstacles boosters] (re-matches #"(.*)#(.*)#(.*)#(.*)" description)]
     {:bot-point (first (parse-points start))
      :corners   (parse-points level)
      :obstacles (mapv parse-points (filter not-empty (split obstacles #";")))
-     :boosters  (mapv parse-buster (filter not-empty (split busters #";")))}))
+     :boosters  (mapv parse-booster (filter not-empty (split boosters #";")))}))
 
 (defn parse-puzzle [puzzle-name]
   (let [description (clojure.string/trim (slurp (str "puzzles/" puzzle-name)))
