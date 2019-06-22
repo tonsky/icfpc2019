@@ -140,7 +140,7 @@
     <entry file="file://$PROJECT_DIR$/src/icfpc/main.clj">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="450">
-          <caret line="38" selection-start-line="38" selection-end-line="38" />
+          <caret line="51" selection-start-line="51" selection-end-line="51" />
         </state>
       </provider>
     </entry>
@@ -156,8 +156,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/bot.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1620">
-          <caret line="113" selection-start-line="113" selection-end-line="113" />
+        <state relative-caret-position="2160">
+          <caret line="149" selection-start-line="149" selection-end-line="149" />
         </state>
       </provider>
     </entry>
@@ -184,8 +184,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/icfpc/level.clj">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="244" column="11" selection-start-line="244" selection-start-column="11" selection-end-line="244" selection-end-column="11" />
+        <state>
+          <caret line="272" column="33" selection-start-line="272" selection-start-column="33" selection-end-line="272" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/problems/prob-300.desc">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/problems/part-3-legend.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1005">
+          <caret line="67" column="7" selection-start-line="67" selection-start-column="7" selection-end-line="67" selection-end-column="7" />
         </state>
       </provider>
     </entry>
