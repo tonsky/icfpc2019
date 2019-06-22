@@ -2,22 +2,22 @@
   (:require [icfpc.core :refer :all]
             [icfpc.parser :as parser]))
 
-(defn coord->idx [level x y] (+ x (* y (:level/width level))))
+(defn coord->idx [level x y] (+ x (* y (:width level))))
 
 (defn get-level [level x y]
-  (nth (:level/grid level) (coord->idx level x y)))
+  (nth (:grid level) (coord->idx level x y)))
 
-(defn valid-point? [{:level/keys [width height] :as level} [x y]]
+(defn valid-point? [{:keys [width height] :as level} [x y]]
   (and (< -1 x width) (< -1 y height)))
 
 (defn set-level [level x y value]
-  (update level :level/grid assoc (coord->idx level x y) value))
+  (update level :grid assoc (coord->idx level x y) value))
 
 (defn is-booster-active [level booster]
-  (get (:bot/active-boosters level) booster))
+  (pos? (get (:active-boosters level) booster 0)))
 
 (defn valid?
-  ([x y {:level/keys [width height] :as level}]
+  ([x y {:keys [width height] :as level}]
     (when (and
             (< -1 x width)
             (< -1 y height)
@@ -25,10 +25,10 @@
               (is-booster-active level DRILL)
               (not= OBSTACLE (get-level level x y))))
       level))
-  ([{:bot/keys [x y] :as level}]
+  ([{:keys [x y] :as level}]
     (valid? x y level)))
 
-(defn bot-covering [{:bot/keys [x y layout] :as level}]
+(defn bot-covering [{:keys [x y layout] :as level}]
   (reduce 
     (fn [acc [dx dy]]
       (let [x' (+ x dx)
@@ -39,49 +39,69 @@
     []
     layout))
 
-(defn collect-booster [{:level/keys [boosters] :as level}]
-  (let [booster (get boosters [(:bot/x level) (:bot/y level)])]
+(defn collect-booster [{:keys [boosters] :as level}]
+  (let [booster (get boosters [(:x level) (:y level)])]
     (if (some? booster)
       (-> level
-          (update :level/boosters (fn [boosters]
-                                    (dissoc boosters [(:bot/x level) (:bot/y level)])))
-          (update :bot/collected-boosters (fn [collected-boosters]
+          (update :boosters (fn [boosters]
+                                    (dissoc boosters [(:x level) (:y level)])))
+          (update :collected-boosters (fn [collected-boosters]
                                             (if (contains? collected-boosters booster)
                                               (update collected-boosters booster inc)
                                               (assoc collected-boosters booster 1))))
           (update :score + 100))
       level)))
 
-(def score-point {EMPTY       1
-                  OBSTACLE    0
-                  WRAPPED     0})
+(defn wear-off-boosters [level]
+  (let [fast-wheels (get-in level [:active-boosters FAST_WHEELS] 0)
+        drill       (get-in level [:active-boosters DRILL] 0)]
+    (cond-> level
+      (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec)
+      (pos? drill) (update-in [:active-boosters DRILL] dec))))
+
+(defn score-point [level x y]
+  (get {EMPTY    1
+        OBSTACLE 0
+        WRAPPED  0}
+    (get-level level x y)))
+
+(defn score-point' [level x y]
+  (if (= EMPTY (get-level level x y))
+    (max 1 (nth (:weights level) (coord->idx level x y)))
+    0))
+
+(defn drill [{:keys [x y] :as level}]
+  (if (and (is-booster-active level DRILL)
+           (= OBSTACLE (get-level level x y)))
+    (set-level level x y WRAPPED)
+    level))
 
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
-  [{:level/keys [boosters] :as level}]
+  [{:keys [boosters] :as level}]
   (reduce
     (fn [level [x y]]
       (let [before  (get-level level x y)
             booster (get boosters [x y])]
         (cond-> level
           (= EMPTY before) (set-level x y WRAPPED)
-          true             (update :score + (score-point before)))))
-    (collect-booster level)
+          true             (update :score + (score-point' level x y)))))
+    (-> level collect-booster drill)
     (bot-covering level)))
 
 (def prob-001
-  {:level/width  7
-   :level/height 3
-   :level/grid [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
+  {:width  7
+   :height 3
+   :grid [EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE
                 EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY
                 EMPTY EMPTY EMPTY EMPTY EMPTY OBSTACLE OBSTACLE]
-   :bot/x 0
-   :bot/y 0
-   :bot/layout [[0 0] [1 0] [1 1] [1 -1]]
-   :bot/boosts {EXTRA_HAND 0
-                FAST_WHEELS 0
-                DRILL 0
-                X_UNKNOWN_PERK 0}})
+   :x 0
+   :y 0
+   :layout [[0 0] [1 0] [1 1] [1 -1]]
+   :boosts {EXTRA_HAND 0
+            FAST_WHEELS 0
+            DRILL 0
+            X_UNKNOWN_PERK 0}})
 
 (defn bounds [points]
   (let [xs (map first points)
@@ -194,7 +214,7 @@
                         level
                         rs)))
             level
-            (range (:level/height level)))))
+            (range (:height level)))))
 
 (defn collect-boosters [boosters]
     (into {}
@@ -202,22 +222,35 @@
                  [[x y] b]))
           boosters))
 
+(defn weights [{:keys [width height] :as level}]
+  (for [y (range 0 height)
+        x (range 0 width)]
+    (reduce + 0
+      (for [[dx dy] [[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]]
+            :let [x' (+ x dx)
+                  y' (+ y dy)]]
+        (if (or (< x' 0) (>= x' width) (< y' 0) (>= y' height)
+              (= (get-level level x' y') OBSTACLE))
+          1
+          0)))))
+
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
-        init-level {:level/name             name
-                    :level/width            width
-                    :level/height           height
-                    :level/grid             (vec (repeat (* width height) OBSTACLE))
-                    :level/boosters         (collect-boosters boosters)
-                    :bot/x                  (first bot-point)
-                    :bot/y                  (second bot-point)
-                    :bot/layout             [[0 0] [1 0] [1 1] [1 -1]]
-                    :bot/collected-boosters {}
-                    :bot/active-boosters    {}
-                    :score                  0
-                    :path                   ""}]
-    (fill-level init-level corners obstacles)))
+        init-level {:name               name
+                    :width              width
+                    :height             height
+                    :grid               (vec (repeat (* width height) OBSTACLE))
+                    :boosters           (collect-boosters boosters)
+                    :x                  (first bot-point)
+                    :y                  (second bot-point)
+                    :layout             [[0 0] [1 0] [1 1] [1 -1]]
+                    :collected-boosters {}
+                    :active-boosters    {}
+                    :score              0
+                    :path               ""}
+        level (fill-level init-level corners obstacles)]
+    (assoc level :weights (weights level))))
 
 (defn ray-path [from to]
   (let [[from-x from-y :as from] (min-key first from to)

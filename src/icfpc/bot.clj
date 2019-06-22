@@ -29,28 +29,63 @@
                :bot/y))
 
 (defn add-extra-hand [level]
-  (when (pos? (get (:bot/collected-boosters level) EXTRA_HAND 0))
+  (when (pos? (get (:collected-boosters level) EXTRA_HAND 0))
     (let [variants (clojure.set/difference #{[0 1] [0 -1] [-1 0] [1 0] [1 1] [-1 -1] [-1 1] [1 -1]}
-                                           (set (:bot/layout level)))
+                                           (set (:layout level)))
           [x y :as p] (first variants)]
       (when (some? p)
         (-> level
-            (update :bot/layout conj [x y])
-            (update-in [:bot/collected-boosters EXTRA_HAND] dec)
+            (update :layout conj [x y])
+            (update-in [:collected-boosters EXTRA_HAND] dec)
             (update :score + 1000)
             (update :path str "B(" x "," y ")"))))))
 
+(defn fast? [level]
+  (pos? (get (:active-boosters level) FAST_WHEELS 0)))
+
+(defn add-fast-wheels [level]
+  (when (and (pos? (get (:collected-boosters level) FAST_WHEELS 0))
+          (not (fast? level)))
+    (-> level
+      (update-in [:collected-boosters FAST_WHEELS] dec)
+      (assoc-in [:active-boosters FAST_WHEELS] 51)
+      (update :score + 1000)
+      (update :path str FAST_WHEELS))))
+
+(defn drill? [level]
+  (pos? (get (:active-boosters level) DRILL 0)))
+
+(defn add-drill [level]
+  (when (and (pos? (get (:collected-boosters level) DRILL 0))
+          (not (fast? level)))
+    (-> level
+      (update-in [:collected-boosters DRILL] dec)
+      (assoc-in [:active-boosters DRILL] 31)
+      (update :score + 1000)
+      (update :path str DRILL))))
+
+(defn extra-move [level dx dy]
+  (if (fast? level)
+    (let [level' (-> level
+                   (update :x + dx)
+                   (update :y + dy))]
+      (if (valid? level')
+        (mark-wrapped level')
+        level))
+    level))
+
 (defn move [level dx dy action]
   (some-> level
-    (update :bot/x + dx)
-    (update :bot/y + dy)
+    (update :x + dx)
+    (update :y + dy)
     (valid?)
     (mark-wrapped)
+    (extra-move dx dy)
     (update :path str action)))
 
 (defn rotate-ccw [level]
   (-> level
-    (update :bot/layout
+    (update :layout
       (fn [layout]
         (mapv (fn [[dx dy]] [(- dy) dx]) layout)))
     (mark-wrapped)
@@ -58,7 +93,7 @@
 
 (defn rotate-cw [level]
   (-> level
-    (update :bot/layout
+    (update :layout
       (fn [layout]
         (mapv (fn [[dx dy]] [dy (- dx)]) layout)))
     (mark-wrapped)
@@ -67,15 +102,16 @@
 (def ^:dynamic *max-path-len*)
 
 (defn act [level action]
-  ; (prn "act" level (:bot/x level) (:bot/y level) action)
   (condp = action
-    EXTRA_HAND (add-extra-hand level)
-    UP         (move level 0 1 UP)
-    DOWN       (move level 0 -1 DOWN)
-    LEFT       (move level -1 0 LEFT)
-    RIGHT      (move level 1 0 RIGHT)
-    ROTATE_CW  (rotate-cw level)
-    ROTATE_CCW (rotate-ccw level)))
+    EXTRA_HAND  (add-extra-hand level)
+    FAST_WHEELS (add-fast-wheels level) 
+    DRILL       (add-drill level)
+    UP          (move level 0 1 UP)
+    DOWN        (move level 0 -1 DOWN)
+    LEFT        (move level -1 0 LEFT)
+    RIGHT       (move level 1 0 RIGHT)
+    ROTATE_CW   (rotate-cw level)
+    ROTATE_CCW  (rotate-ccw level)))
 
 (def counter
   {LEFT RIGHT
@@ -93,7 +129,7 @@
     (loop [queue  (queue level)
            levels #{}]
       (let [level (peek queue)
-            {:level/keys [width height] :bot/keys [x y] :keys [path]} level]
+            {:keys [width height x y path]} level]
         (cond
           (empty? queue)
           (when-not (empty? levels)
@@ -104,20 +140,20 @@
 
           :else
           (let [last-action (last path)
-                moves (for [action [EXTRA_HAND ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                moves (for [action [EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                             :when  (not= last-action (counter action))
                             :let   [level' (act level action)]
                             :when  (some? level')
                             :when  (> (:score level') (:score level))]
-                        level')]
+                        (wear-off-boosters level'))]
             (recur (into (pop queue) moves) levels)))))))
 
 (defn make-move [level]
   (let [min-score (:score level)]
     (loop [queue (queue level)
-           seen  #{[(:bot/x level) (:bot/y level)]}]
+           seen  #{[(:x level) (:y level)]}]
       (let [level (peek queue)
-            {:level/keys [width height] :bot/keys [x y] :keys [path score]} level]
+            {:keys [width height x y path score]} level]
         (cond
           (empty? queue)
           nil
@@ -127,25 +163,25 @@
 
           :else
           (let [moves (->>
-                        (for [action [RIGHT LEFT UP DOWN]
+                        (for [action [EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
                               :let   [level' (act level action)]
                               :when  (some? level')
-                              :when  (not (contains? seen [(:bot/x level') (:bot/y level')]))]
-                          level')
+                              :when  (not (contains? seen [(:x level') (:y level')]))]
+                          (wear-off-boosters level'))
                         (sort-by :score)
                         (reverse))]
             (recur
               (into (pop queue) moves)
-              (into seen (map (fn [l] [(:bot/x l) (:bot/y l)]) moves)))))))))
+              (into seen (map (fn [l] [(:x l) (:y l)]) moves)))))))))
 
-(defn print-level [{:level/keys [width height name boosters] :bot/keys [x y] :as level} & {:keys [colored?] :or {colored? true}}]
+(defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
   (doseq [y (range (min (dec height) (+ y 20)) (dec (max 0 (- y 20))) -1)]
     (doseq [x (range (max 0 (- x 50)) (min width (+ x 50)))
             :let [v (get-level level x y)
                   booster (get boosters [x y])]]
         (cond
-          (and (= x (:bot/x level)) (= y (:bot/y level)))
+          (and (= x (:x level)) (= y (:y level)))
           (if colored?
             (print "\033[37;1;41m☺\033[0m")
             (print "☺"))
@@ -170,7 +206,7 @@
     (println))
   (println))
 
-(defn solve [level & [{:keys [debug? lookahead? max-path-len]
+(defn solve [level & [{:keys [debug? lookahead? max-path-len delay]
                        :or {lookahead? true, debug? true, max-path-len 3}}]]
   (let [t0 (System/currentTimeMillis)]
     (binding [*max-path-len* max-path-len]
@@ -179,14 +215,17 @@
         (if-some [level' (or
                            (when lookahead? (lookahead level))
                            (make-move level))]
-          (if (and debug? (> (- (System/currentTimeMillis) last-frame) 200))
+          (if (and debug?
+                (or (some? delay)
+                  (> (- (System/currentTimeMillis) last-frame) 200)))
             (do
               (println "\033[2J")
               (print-level level')
-              (println "Boosters: " (:bot/collected-boosters level))
-              (println "Layout: " (:bot/layout level))
-              (println (str "[" (:bot/x level) "," (:bot/y level) "] -> [" (:bot/x level') "," (:bot/y level') "]"))
-              (println (count (:path level')) "via" (:path level'))
+              (println "Active:" (:collected-boosters level) "collected:" (:active-boosters level))
+              (println "Hands:" (dec (count (:layout level))) "layout:" (:layout level))
+              (println "Score:" (count (:path level')))
+              (when (some? delay)
+                (Thread/sleep delay))
               (when-not (Thread/interrupted)
                 (recur level' (System/currentTimeMillis))))
             (recur level' last-frame))
@@ -194,7 +233,7 @@
            :score (count (:path level))
            :time  (- (System/currentTimeMillis) t0)})))))
 
-(defn show-boosters [{:level/keys [boosters] :as level}]
+(defn show-boosters [{:keys [boosters] :as level}]
   (let [level' (reduce (fn [level [[x y] kind]]
                          (set-level level x y kind))
                        level

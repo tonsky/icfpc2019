@@ -5,15 +5,21 @@
    [clojure.string :as str]
    [clojure.java.io :as io]))
 
+(def log-agent (agent nil))
+
+(defn log [& msg] (send log-agent (fn [_] (apply println msg) _)))
+
 (defn solve [name & [opts]]
   (try
-    (println "Solving" name "...")
+    ; (log "Solving" name "...")
     (let [level (level/load-level (str name ".desc"))
           sln   (bot/solve level (merge
                                    {:debug? false
-                                    :lookahead? (<= (:level/width level) 200)}
+                                    :lookahead? (<= (:width level) 200)}
                                    opts))]
-      (println "Solved" name (dissoc sln :path))
+      (log (when-some [t0 (:t0 opts)]
+             (str (- (System/currentTimeMillis) t0) "ms"))
+           "Solved" name (dissoc sln :path))
       (spit (str "problems/" name ".sol") (:path sln)))
     (catch Exception e
       (.printStackTrace e))))
@@ -28,10 +34,17 @@
   (let [names (->> (file-seq (io/file "problems"))
                  (map #(.getPath %))
                  (filter #(str/ends-with? % ".desc"))
-                 (map #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
+                 (keep #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
                  sort
-                 (skip-till skip))]
-    (doall (pmap solve names))))
+                 #_(take 60)
+                 (skip-till skip))
+        t0       (System/currentTimeMillis)
+        threads  (.. Runtime getRuntime availableProcessors)
+        executor (java.util.concurrent.Executors/newFixedThreadPool threads)]
+    (log "Running" threads "threads")
+    (doseq [name names]
+      (.submit executor ^Callable
+        (fn [] (solve name {:t0 t0}))))))
 
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))
