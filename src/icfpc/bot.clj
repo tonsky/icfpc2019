@@ -52,6 +52,18 @@
       (update :score + 1000)
       (update :path str FAST_WHEELS))))
 
+(defn drill? [level]
+  (pos? (get (:active-boosters level) DRILL 0)))
+
+(defn add-drill [level]
+  (when (and (pos? (get (:collected-boosters level) DRILL 0))
+          (not (fast? level)))
+    (-> level
+      (update-in [:collected-boosters DRILL] dec)
+      (assoc-in [:active-boosters DRILL] 31)
+      (update :score + 1000)
+      (update :path str DRILL))))
+
 (defn extra-move [level dx dy]
   (if (fast? level)
     (let [level' (-> level
@@ -93,6 +105,7 @@
   (condp = action
     EXTRA_HAND  (add-extra-hand level)
     FAST_WHEELS (add-fast-wheels level) 
+    DRILL       (add-drill level)
     UP          (move level 0 1 UP)
     DOWN        (move level 0 -1 DOWN)
     LEFT        (move level -1 0 LEFT)
@@ -127,7 +140,7 @@
 
           :else
           (let [last-action (last path)
-                moves (for [action [EXTRA_HAND FAST_WHEELS ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                moves (for [action [EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
                             :when  (not= last-action (counter action))
                             :let   [level' (act level action)]
                             :when  (some? level')
@@ -150,7 +163,7 @@
 
           :else
           (let [moves (->>
-                        (for [action [FAST_WHEELS RIGHT LEFT UP DOWN] ;; EXTRA_HAND?
+                        (for [action [EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
                               :let   [level' (act level action)]
                               :when  (some? level')
                               :when  (not (contains? seen [(:x level') (:y level')]))]

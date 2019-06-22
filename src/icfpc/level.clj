@@ -14,7 +14,7 @@
   (update level :grid assoc (coord->idx level x y) value))
 
 (defn is-booster-active [level booster]
-  (get (:active-boosters level) booster))
+  (pos? (get (:active-boosters level) booster 0)))
 
 (defn valid?
   ([x y {:keys [width height] :as level}]
@@ -53,9 +53,11 @@
       level)))
 
 (defn wear-off-boosters [level]
-  (let [fast-wheels (get-in level [:active-boosters FAST_WHEELS] 0)]
+  (let [fast-wheels (get-in level [:active-boosters FAST_WHEELS] 0)
+        drill       (get-in level [:active-boosters DRILL] 0)]
     (cond-> level
-      (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec))))
+      (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec)
+      (pos? drill) (update-in [:active-boosters DRILL] dec))))
 
 (defn score-point [level x y]
   (get {EMPTY    1
@@ -68,6 +70,12 @@
     (max 1 (nth (:weights level) (coord->idx level x y)))
     0))
 
+(defn drill [{:keys [x y] :as level}]
+  (if (and (is-booster-active level DRILL)
+           (= OBSTACLE (get-level level x y)))
+    (set-level level x y WRAPPED)
+    level))
+
 (defn mark-wrapped
   "Apply wrapped to what bot at current pos touches"
   [{:keys [boosters] :as level}]
@@ -78,7 +86,7 @@
         (cond-> level
           (= EMPTY before) (set-level x y WRAPPED)
           true             (update :score + (score-point' level x y)))))
-    (-> level collect-booster)
+    (-> level collect-booster drill)
     (bot-covering level)))
 
 (def prob-001
