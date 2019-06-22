@@ -21,7 +21,7 @@
     [(first type) (first (parse-points point-str))]))
 
 (defn parse-level [task-name]
-  (let [description (slurp (str "problems/" task-name))
+  (let [description (clojure.string/trim (slurp (str "problems/" task-name)))
         [_ level start obstacles busters] (re-matches #"(.*)#(.*)#(.*)#(.*)" description)]
     {:bot-point (first (parse-points start))
      :corners   (parse-points level)
@@ -29,7 +29,7 @@
      :boosters  (mapv parse-buster (filter not-empty (split busters #";")))}))
 
 (defn parse-puzzle [puzzle-name]
-  (let [description (slurp (str "puzzles/" puzzle-name))
+  (let [description (clojure.string/trim (slurp (str "puzzles/" puzzle-name)))
         [params include exclude] (split description #"#")
         [block-number epoch t-size v-min v-max extra-hands fast-wheels drills teleports cloning spawns] (map #(Integer/parseInt %) (split params #","))]
     {:block-number block-number

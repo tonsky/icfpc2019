@@ -3,7 +3,9 @@
    [icfpc.bot :as bot]
    [icfpc.level :as level]
    [clojure.string :as str]
-   [clojure.java.io :as io])
+   [clojure.java.io :as io]
+   [clojure.java.shell :as shell]
+   [clojure.data.json :as json])
   (:import
    [java.util.concurrent CompletableFuture]))
 
@@ -86,4 +88,86 @@
        (reduce + 0)))
 
 (defn mine-coins [& [block excluded puzzle task]]
+  (spit "mine.log" (str block excluded))
   (prn block excluded puzzle task))
+
+(defn run-lambda [& commands]
+  (let [result (shell/with-sh-dir "client/lambda-client"
+                                  (apply shell/sh
+                                         "./lambda-cli.py"
+                                         commands))]
+    (when (not= 0 (:exit result))
+      (prn "Err: " (:err result)))
+    (:out result)))
+
+(defn mine-block [block]
+  (let [block (Integer/parseInt (clojure.string/trim block))
+        puzzle (run-lambda "getblockinfo" (str block) "puzzle")
+        task (run-lambda "getblockinfo" (str block) "task")
+        puzzle-name (format "puzzle-%03d.cond" block)
+        task-name (format "task-%03d.desc" block)
+        solution-name (format "solution-%03d.sol" block)
+        generated-name (format "generated-%03d.desc" block)]
+    (prn (format "Round: %03d" block))
+    (spit (str "./puzzles/" puzzle-name) puzzle)
+    (spit (str "./puzzles/" task-name) task)
+    (prn "Generate level...")
+    (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
+          level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
+      (if (icfpc.parser/validate-puzzle puzzle level)
+        (do
+          (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
+          (prn "Level generated...")
+          (prn "Trying to solve level...")
+          (let [level (level/load-level (str "../puzzles/" task-name))
+                sln   (bot/solve level (merge
+                                        {:debug? false
+                                         :lookahead? false #_(<= (:width level) 200)}))]
+            (prn "Solved " (dissoc sln :path))
+            (spit (str "./puzzles/" solution-name) (:path sln))))
+        (prn "Level generation failed.")))
+    (shutdown-agents)))
+
+(defn mine []
+  (let [block (Integer/parseInt (clojure.string/trim (run-lambda "getmininginfo" "block")))
+        puzzle (run-lambda "getmininginfo" "puzzle")
+        task (run-lambda "getmininginfo" "task")
+        puzzle-name (format "puzzle-%03d.cond" block)
+        task-name (format "task-%03d.desc" block)
+        solution-name (format "solution-%03d.sol" block)
+        generated-name (format "generated-%03d.desc" block)]
+    (prn (format "Round: %03d" block))
+    (spit (str "./puzzles/" puzzle-name) puzzle)
+    (spit (str "./puzzles/" task-name) task)
+    (prn "Generate level...")
+    (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
+          level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
+      (if (icfpc.parser/validate-puzzle puzzle level)
+        (do
+          (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
+          (prn "Level generated...")
+          (prn "Trying to solve level...")
+          (let [level (level/load-level (str "../puzzles/" task-name))
+                sln   (bot/solve level (merge
+                                        {:debug? false
+                                         :lookahead? false #_(<= (:width level) 200)}))]
+            (prn "Solved " (dissoc sln :path))
+            (spit (str "./puzzles/" solution-name) (:path sln)))
+          (prn (run-lambda "submit" (str block) (str "../../puzzles/" solution-name) (str "../../puzzles/" generated-name))))
+        (prn "Level generation failed.")))
+    (shutdown-agents)))
+
+
+(comment
+
+  (run-lambda "")
+  (def block (Integer/parseInt (clojure.string/trim (run-lambda "getmininginfo" "block"))))
+  (mine)
+
+  (spit "./puzzles/foo.txt" "hello")
+  (spit "./puzzles/foo.txt" "world")
+
+  (mine)
+  *e
+
+  )

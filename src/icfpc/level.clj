@@ -473,10 +473,11 @@
 
   *e
 
-  (:v-max puzzle)
-
   (def puzzle (parser/parse-puzzle "first.cond"))
   (def lvl (generate-level "first.cond"))
+  (spit "first.desc" (icfpc.writer/desc lvl))
+
+
   (count (icfpc.writer/segments lvl))
 
 
@@ -485,6 +486,7 @@
   (:height lvl)
 
   (icfpc.bot/print-level lvl :colored? false :max-w 1000 :max-h 1000)
+  (icfpc.parser/validate-puzzle (parser/parse-puzzle "first.cond") lvl)
 
   (keys puzzle)
   (:t-size puzzle)
