@@ -68,12 +68,24 @@
   ([{:keys [x y] :as level}]
     (valid? x y level)))
 
+(defn valid-hand?
+  ([x y {:keys [width height] :as level}]
+    (when (and
+            (< -1 x width)
+            (< -1 y height)
+            (not= OBSTACLE (get-level level x y))
+            ;;TODO check hand viz
+            )
+      level))
+  ([{:keys [x y] :as level}]
+    (valid? x y level)))
+
 (defn bot-covering [{:keys [x y layout] :as level}]
   (reduce 
     (fn [acc [dx dy]]
       (let [x' (+ x dx)
             y' (+ y dy)]
-        (if (valid? x' y' level)
+        (if (valid-hand? x' y' level)
           (conj acc [x' y'])
           acc)))
     []
