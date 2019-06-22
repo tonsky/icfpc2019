@@ -5,6 +5,7 @@
   :source-paths   ["src"]
   :resource-paths ["resources"]
   :main           icfpc.main
+  :jvm-opts ["-Xverify:none"]
   
   :profiles {
     :dev {

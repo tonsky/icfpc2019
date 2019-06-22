@@ -73,33 +73,25 @@
     (valid? x y level)))
 
 (defn bot-covering [{:keys [x y layout] :as level}]
-  (reduce 
-    (fn [acc [dx dy]]
-      (let [x' (+ x dx)
-            y' (+ y dy)]
-        (if (valid-hand? x' y' level)
-          (conj acc [x' y'])
-          acc)))
-    []
-    layout))
+  (for [[dx dy] layout
+        :let [x' (+ x dx) y' (+ y dy)]
+        :when (if (= [0 0] [dx dy])
+                (valid? x y level)
+                (valid-hand? x' y' level))]
+    [x' y']))
 
 (defn collect-booster [{:keys [boosters] :as level}]
-  (let [booster (get boosters [(:x level) (:y level)])]
-    (if (some? booster)
-      (-> level
-          (update :boosters (fn [boosters]
-                              (dissoc boosters [(:x level) (:y level)])))
-          (update :collected-boosters (fn [collected-boosters]
-                                        (if (contains? collected-boosters booster)
-                                          (update collected-boosters booster inc)
-                                          (assoc collected-boosters booster 1))))
-          (update :score + 100))
-      level)))
+  (if-some [booster (get boosters [(:x level) (:y level)])]
+    (-> level
+      (update :boosters dissoc [(:x level) (:y level)])
+      (update :collected-boosters update booster (fnil inc 0))
+      (update :score + 100))
+    level))
 
 (defn wear-off-boosters [level]
   (-> level
-    (update :active-boosters spend FAST_WHEELS)
-    (update :active-boosters spend DRILL)))
+    (spend :active-boosters FAST_WHEELS)
+    (spend :active-boosters DRILL)))
 
 (defn score-point [level x y]
   (get {EMPTY    1

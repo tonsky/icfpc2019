@@ -50,7 +50,7 @@
       (when (some? p)
         (-> level
             (update :layout conj [x y])
-            (update :collected-boosters spend EXTRA_HAND)
+            (spend  :collected-boosters EXTRA_HAND)
             (update :score + 1000)
             (update :path str "B(" x "," y ")"))))))
 
@@ -61,7 +61,7 @@
   (when (and (pos? (get (:collected-boosters level) FAST_WHEELS 0))
           (not (fast? level)))
     (-> level
-      (update :collected-boosters spend FAST_WHEELS)
+      (spend :collected-boosters FAST_WHEELS)
       (assoc-in [:active-boosters FAST_WHEELS] 51)
       (update :score + 1000)
       (update :path str FAST_WHEELS))))
@@ -73,7 +73,7 @@
   (when (and (pos? (get (:collected-boosters level) DRILL 0))
           (not (fast? level)))
     (-> level
-      (update :collected-boosters spend DRILL)
+      (spend :collected-boosters DRILL)
       (assoc-in [:active-boosters DRILL] 31)
       (update :score + 1000)
       (update :path str DRILL))))
@@ -88,7 +88,7 @@
                   50))
             (:beakons level)))
     (-> level
-      (update :collected-boosters spend TELEPORT)
+      (spend :collected-boosters TELEPORT)
       (update :beakons (fnil conj []) [(:x level) (:y level)])
       (update :score + 1000)
       (update :path str SET_BEAKON))))
@@ -130,30 +130,31 @@
 
 (defn jump [level idx]
   (when-some [[bx by] (nth (:beakons level) idx nil)]
-    (-> level
-      (assoc :x bx :y by)
-      (mark-wrapped)
-      (update :path str JUMP "(" bx "," by ")"))))
+    (when (not= [(:x level) (:y level)] [bx by])
+      (-> level
+        (assoc :x bx :y by)
+        (mark-wrapped)
+        (update :path str JUMP "(" bx "," by ")")))))
 
 (def ^:dynamic *max-path-len*)
 (def ^:dynamic *disabled*)
 
 (defn act [level action]
   (condp = action
-    EXTRA_HAND  (add-extra-hand level)
-    FAST_WHEELS (add-fast-wheels level) 
-    DRILL       (add-drill level)
-    SET_BEAKON  (set-beakon level)
-    :jump0      (jump level 0)
-    :jump1      (jump level 1)
-    :jump2      (jump level 2)
-    WAIT        (update level :path str WAIT)
     UP          (move level 0 1 UP)
     DOWN        (move level 0 -1 DOWN)
     LEFT        (move level -1 0 LEFT)
     RIGHT       (move level 1 0 RIGHT)
     ROTATE_CW   (rotate-cw level)
-    ROTATE_CCW  (rotate-ccw level)))
+    ROTATE_CCW  (rotate-ccw level)
+    :jump0      (jump level 0)
+    :jump1      (jump level 1)
+    :jump2      (jump level 2)
+    EXTRA_HAND  (add-extra-hand level)
+    FAST_WHEELS (add-fast-wheels level) 
+    DRILL       (add-drill level)
+    SET_BEAKON  (set-beakon level)
+    WAIT        (update level :path str WAIT)))
 
 (def counter
   {LEFT RIGHT
@@ -166,64 +167,61 @@
 (defn lookahead-score [level]
   [(:score level) (- (count (:path level)))])
 
-(defn lookahead [level]
-  (let [max-len (+ (count (:path level)) *max-path-len*)]
-    (loop [queue  (queue level)
-           levels #{}]
-      (let [level (peek queue)
-            {:keys [width height x y path]} level]
-        (cond
-          (empty? queue)
-          (when-not (empty? levels)
-            (max-by lookahead-score levels))
-
-          (>= (count path) max-len)
-          (recur (pop queue) (conj levels level))
-
-          :else
-          (let [last-action (last path)
-                moves (for [action [SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
-                            :when  (not (contains? *disabled* action))
-                            :when  (not= last-action (counter action))
-                            :let   [level' (act level action)]
-                            :when  (some? level')
-                            :when  (> (:score level') (:score level))]
-                        (wear-off-boosters level'))]
-            (recur (into (pop queue) moves) levels)))))))
+(defn lookahead [base-level]
+  (let [max-len (+ (count (:path base-level)) *max-path-len*)
+        queue   (java.util.ArrayDeque. [base-level])]
+    (loop [max-level nil
+           max-score nil]
+      (if-some [level (.poll queue)]
+        (let [{:keys [path]} level
+              score (lookahead-score level)]
+          (when (< (count path) max-len)
+            (let [last-action (last path)]
+              (doseq [action [EXTRA_HAND DRILL FAST_WHEELS SET_BEAKON ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                      :when  (not (contains? *disabled* action))
+                      :when  (not= last-action (counter action))
+                      :let   [level' (act level action)]
+                      :when  (some? level')
+                      :when  (> (:score level') (:score level))]
+                (.add queue (wear-off-boosters level')))))
+          (cond+
+            (identical? base-level level)    (recur max-level max-score)
+            (nil? max-level)                 (recur level score)
+            (pos? (compare score max-score)) (recur level score)
+            :else                            (recur max-level max-score)))
+          max-level))))
 
 (defn make-move [level]
-  (let [min-score (:score level)]
-    (loop [queue (queue level)
-           seen  #{[(:x level) (:y level)]}]
-      (let [level (peek queue)
-            {:keys [width height x y path score]} level]
-        (cond
-          (empty? queue)
-          nil
+  (let [min-score (:score level)
+        seen      (java.util.HashSet. [(:x level) (:y level)])
+        queue     (java.util.ArrayDeque. [level])]
+    (loop []
+      (when-some [{:keys [x y] :as level} (.poll queue)]
 
-          (== 0 (:empty level))
-          level
+        (let [moves (for [action [EXTRA_HAND DRILL FAST_WHEELS SET_BEAKON :jump0 :jump1 :jump2 RIGHT LEFT UP DOWN]
+                          :when  (not (contains? *disabled* action))
+                          :let   [level' (act level action)]
+                          :when  (some? level')
+                          :when  (or (= [x y] [(:x level') (:y level')])
+                                     (not (.contains seen [(:x level') (:y level')])))]
+                      level')]
+          (cond+
+            (empty? moves)
+            (do
+              (.add queue (-> level (act WAIT) (wear-off-boosters)))
+              (recur))
 
-          (> score min-score)
-          level
+            :let [the-move (seek #(or (== 0 (:empty %)) (> (:score %) min-score)) moves)]
 
-          :else
-          (let [moves (->>
-                        (for [action [:jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
-                              :when  (not (contains? *disabled* action))
-                              :let   [level' (act level action)]
-                              :when  (some? level')
-                              :when  (or (not (contains? #{:jump0 :jump1 :jump2 RIGHT LEFT UP DOWN} action))
-                                         (not (contains? seen [(:x level') (:y level')])))]
-                          (wear-off-boosters level'))
-                        (sort-by :score)
-                        (reverse))
-                moves' (if (empty? moves)
-                         [(-> level (act WAIT) (wear-off-boosters))]
-                         moves)]
-            (recur
-              (into (pop queue) moves')
-              (into seen (map (fn [l] [(:x l) (:y l)]) moves')))))))))
+            (some? the-move)
+            (wear-off-boosters the-move)
+
+            :else
+            (do
+              (doseq [move moves]
+                (.add seen [(:x move) (:y move)])
+                (.add queue (wear-off-boosters move)))
+              (recur))))))))
 
 (defn print-level [{:keys [width height name boosters x y] :as level} 
                    & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]

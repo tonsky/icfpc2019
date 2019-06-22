@@ -7,6 +7,8 @@
   (:import
    [java.util.concurrent CompletableFuture]))
 
+(set! *warn-on-reflection* true)
+
 (def log-agent (agent nil))
 
 (defn log [& msg] (send log-agent (fn [_] (apply println msg) _)))
