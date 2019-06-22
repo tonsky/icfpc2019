@@ -36,3 +36,10 @@
 
       :else
       (recur max-key max-value (next xs)))))
+
+(defn spend [map key]
+  (let [v (get map key)]
+    (cond
+      (nil? v) map
+      (> v 1)  (assoc map key (dec v))
+      :else    (dissoc map key))))

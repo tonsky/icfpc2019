@@ -104,11 +104,9 @@
       level)))
 
 (defn wear-off-boosters [level]
-  (let [fast-wheels (get-in level [:active-boosters FAST_WHEELS] 0)
-        drill       (get-in level [:active-boosters DRILL] 0)]
-    (cond-> level
-      (pos? fast-wheels) (update-in [:active-boosters FAST_WHEELS] dec)
-      (pos? drill) (update-in [:active-boosters DRILL] dec))))
+  (-> level
+    (update :active-boosters spend FAST_WHEELS)
+    (update :active-boosters spend DRILL)))
 
 (defn score-point [level x y]
   (get {EMPTY    1

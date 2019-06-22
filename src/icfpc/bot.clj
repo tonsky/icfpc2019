@@ -50,7 +50,7 @@
       (when (some? p)
         (-> level
             (update :layout conj [x y])
-            (update-in [:collected-boosters EXTRA_HAND] dec)
+            (update :collected-boosters spend EXTRA_HAND)
             (update :score + 1000)
             (update :path str "B(" x "," y ")"))))))
 
@@ -61,7 +61,7 @@
   (when (and (pos? (get (:collected-boosters level) FAST_WHEELS 0))
           (not (fast? level)))
     (-> level
-      (update-in [:collected-boosters FAST_WHEELS] dec)
+      (update :collected-boosters spend FAST_WHEELS)
       (assoc-in [:active-boosters FAST_WHEELS] 51)
       (update :score + 1000)
       (update :path str FAST_WHEELS))))
@@ -73,7 +73,7 @@
   (when (and (pos? (get (:collected-boosters level) DRILL 0))
           (not (fast? level)))
     (-> level
-      (update-in [:collected-boosters DRILL] dec)
+      (update :collected-boosters spend DRILL)
       (assoc-in [:active-boosters DRILL] 31)
       (update :score + 1000)
       (update :path str DRILL))))
@@ -88,7 +88,7 @@
                   50))
             (:beakons level)))
     (-> level
-      (update-in [:collected-boosters TELEPORT] dec)
+      (update :collected-boosters spend TELEPORT)
       (update :beakons (fnil conj []) [(:x level) (:y level)])
       (update :score + 1000)
       (update :path str SET_BEAKON))))
