@@ -16,6 +16,46 @@
 (defn is-booster-active [level booster]
   (pos? (get (:active-boosters level) booster 0)))
 
+(defn round-down [x]
+  (if (= x (int x))
+    (dec (int x))
+    (int x)))
+
+(defn round-up [x]
+  (int x)
+  #_(if (= x (int x))
+    (int x)
+    (int x)))
+
+(defn ray-path [from-point to-point]
+  (let [[from-x from-y :as from] (min-key first from-point to-point)
+        [to-x to-y :as to] (max-key first from-point to-point)]
+    (if (= from-x to-x)
+      (mapv (fn [y] [from-x y]) (range from-y (inc to-y)))
+      (let [k (/ (- to-y from-y) (- to-x from-x))]
+        (concat
+         (let [[low high] (if (< from-y (+ from-y 1/2 (* k 1/2)))
+                            [from-y (round-down (+ from-y 1/2 (* k 1/2)))]
+                            [(round-up (+ from-y 1/2 (* k 1/2))) from-y])]
+           (map (fn [y] [from-x y]) (range low (inc high))))
+         (mapcat
+          (fn [dx]
+            (let [[low high] (sort [(+ from-y 1/2 (* k (- dx 1/2)))
+                                    (+ from-y 1/2 (* k (+ dx 1/2)))])
+                  low' (round-up low)
+                  high' (round-down high)]
+              (map (fn [y] [(+ from-x dx) y]) (range low' (inc high')))))
+          (range 1 (- to-x from-x)))
+         (let [[low high] (if (<= (- (+ to-y 1/2) (* k 1/2)) to-y)
+                            [(round-up (- (+ to-y 1/2) (* k 1/2))) to-y]
+                            [to-y (round-down (- (+ to-y 1/2) (* k 1/2)))])]
+           (map (fn [y] [to-x y]) (range low (inc high)))))))))
+
+(defn visible? [level from to]
+  (every? true? (map (fn [[x y :as p]]
+                       (not= OBSTACLE (get-level level x y)))
+                     (ray-path from to))))
+
 (defn valid?
   ([x y {:keys [width height] :as level}]
     (when (and
@@ -251,43 +291,6 @@
                     :path               ""}
         level (fill-level init-level corners obstacles)]
     (assoc level :weights (weights level))))
-
-(defn round-down [x]
-  (if (= x (int x))
-    (dec (int x))
-    (int x)))
-
-(defn round-up [x]
-  (int x)
-  #_(if (= x (int x))
-    (int x)
-    (int x)))
-
-(defn ray-path [from-point to-point]
-  (let [[from-x from-y :as from] (min-key first from-point to-point)
-        [to-x to-y :as to] (max-key first from-point to-point)]
-    (if (= from-x to-x)
-      (mapv (fn [y] [from-x y]) (range from-y (inc to-y)))
-      (let [k (/ (- to-y from-y) (- to-x from-x))]
-        (concat
-         (let [[low high] (if (< from-y (+ from-y 1/2 (* k 1/2)))
-                            [from-y (round-down (+ from-y 1/2 (* k 1/2)))]
-                            [(round-up (+ from-y 1/2 (* k 1/2))) from-y])]
-           (map (fn [y] [from-x y]) (range low (inc high))))
-         (mapcat
-          (fn [dx]
-            (let [[low high] (sort [(+ from-y 1/2 (* k (- dx 1/2)))
-                                    (+ from-y 1/2 (* k (+ dx 1/2)))])
-                  low' (round-up low)
-                  high' (round-down high)]
-              (map (fn [y] [(+ from-x dx) y]) (range low' (inc high')))))
-          (range 1 (- to-x from-x)))
-         (let [[low high] (if (<= (- (+ to-y 1/2) (* k 1/2)) to-y)
-                            [(round-up (- (+ to-y 1/2) (* k 1/2))) to-y]
-                            [to-y (round-down (- (+ to-y 1/2) (* k 1/2)))])]
-           (prn [low high])
-           (map (fn [y] [to-x y]) (range low (inc high)))))))))
-
 
 (comment
   (= (ray-path [1 1] [3 0]) [[1 1] [2 0] [2 1] [3 0]])
