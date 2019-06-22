@@ -4,13 +4,14 @@
   (into clojure.lang.PersistentQueue/EMPTY xs))
 
 (def EMPTY \•)
-(def OBSTACLE \X)
+(def OBSTACLE \O)
 (def WRAPPED \+)
 (def EXTRA_HAND \B)
 (def FAST_WHEELS \F)
 (def DRILL \L)
-(def X_UNKNOWN_PERK \?)
+(def SPAWN \X)
 (def TELEPORT \R)
+(def CLONE \C)
 (def WAIT \Z)
 (def UNKNOWN \?)
 
@@ -43,3 +44,11 @@
       (nil? v) map
       (> v 1)  (assoc map key (dec v))
       :else    (dissoc map key))))
+
+(defn coord->idx [level x y] (+ x (* y (:width level))))
+
+(defn get-level [level x y]
+  (nth (:grid level) (coord->idx level x y)))
+
+(defn set-level [level x y value]
+  (update level :grid assoc (coord->idx level x y) value))

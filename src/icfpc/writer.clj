@@ -1,7 +1,6 @@
 (ns icfpc.writer
   (:require
    [icfpc.core :refer :all]
-   [icfpc.level :refer :all]
    [clojure.string :as str]))
 
 (defn floor? [level x y]

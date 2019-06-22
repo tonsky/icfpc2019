@@ -1,17 +1,10 @@
 (ns icfpc.level
-  (:require [icfpc.core :refer :all]
-            [icfpc.parser :as parser]))
-
-(defn coord->idx [level x y] (+ x (* y (:width level))))
-
-(defn get-level [level x y]
-  (nth (:grid level) (coord->idx level x y)))
+  (:require
+   [icfpc.core :refer :all]
+   [icfpc.parser :as parser]))
 
 (defn valid-point? [{:keys [width height] :as level} [x y]]
   (and (< -1 x width) (< -1 y height)))
-
-(defn set-level [level x y value]
-  (update level :grid assoc (coord->idx level x y) value))
 
 (defn is-booster-active [level booster]
   (pos? (get (:active-boosters level) booster 0)))
