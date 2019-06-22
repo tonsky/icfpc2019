@@ -53,7 +53,8 @@
                  (keep #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
                  sort
                  (take-till till)
-                 (skip-till from))
+                 (skip-till from)
+                 (remove #(.exists (io/file (str "problems/" % ".sol")))))
         t0       (System/currentTimeMillis)
         threads  (.. Runtime getRuntime availableProcessors)
         executor (java.util.concurrent.Executors/newFixedThreadPool threads)]
