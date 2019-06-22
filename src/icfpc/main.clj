@@ -25,6 +25,14 @@
     (distinct)
     (map #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
+(defn left []
+  (- (->> (file-seq (io/file "problems"))
+          (filter #(str/ends-with? (.getName %) ".desc"))
+          (count))
+     (->> (file-seq (io/file "problems"))
+          (filter #(str/ends-with? (.getName %) ".sol"))
+          (count))))
+
 (defn solve [name & [opts]]
   (try
     (let [level (level/load-level (str name ".desc"))
@@ -32,11 +40,11 @@
                                    {:debug? false
                                     :lookahead? (<= (:width level) 200)}
                                    opts))]
-
+      (spit (str "problems/" name ".sol") (:path sln))
       (log (when-some [t0 (:t0 opts)]
              (str (- (System/currentTimeMillis) t0) "ms"))
-           "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln))))
-      (spit (str "problems/" name ".sol") (:path sln)))
+           "Left" (left)
+           "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln)))))
     (catch Exception e
       (println (.getMessage e)))))
 
@@ -61,7 +69,7 @@
         threads  (or (cond-> threads (string? threads) (Integer/parseInt))
                    (.. Runtime getRuntime availableProcessors))
         executor (java.util.concurrent.Executors/newFixedThreadPool threads)]
-    (log "Running" threads "threads")
+    (log "Running" threads "threads, solving" (count names) "tasks")
     (->
       (into-array CompletableFuture
         (for [name names]
@@ -71,7 +79,8 @@
       (CompletableFuture/allOf)
       (.join))
     (log "DONE in" (- (System/currentTimeMillis) t0) " ms")
-    (.shutdown executor)))
+    (.shutdown executor)
+    (shutdown-agents)))
 
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))

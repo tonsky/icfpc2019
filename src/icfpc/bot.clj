@@ -295,7 +295,6 @@
                 (recur level' (System/currentTimeMillis))))
             (recur level' last-frame))
           (let [res   {:path  (:path level)
-                       :empty (:empty level)
                        :score (path-score (:path level))
                        :time  (- (System/currentTimeMillis) t0)}
                 empty (count (filter #(= EMPTY %) (:grid level)))]
