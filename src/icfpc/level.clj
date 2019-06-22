@@ -379,20 +379,23 @@
 
 (defn place-boosters [level boosters]
   (let [availible-positions (shuffle (points-by-value level EMPTY))]
-      (reduce
-       (fn [level [i [booster count]]]
-         (let [[x y] (get availible-positions i)]
-           (set-level level x y (case booster
-                                  :extra-hands EXTRA_HAND
-                                  :fast-wheels FAST_WHEELS
-                                  :drills DRILL
-                                  :teleports TELEPORT
-                                  :cloning CLONE
-                                  :spawns SPAWN))))
-       level
-       (map (fn [i v] [i v])
-            (range)
-            boosters))))
+    (reduce
+     (fn [level [i b]]
+       (let [[x y] (get availible-positions i)]
+             (update level :boosters assoc [x y] b)))
+     level
+     (map (fn [i v] [i v])
+          (range)
+          (mapcat (fn [[booster count]]
+                    (repeat count
+                     (case booster
+                       :extra-hands EXTRA_HAND
+                       :fast-wheels FAST_WHEELS
+                       :drills DRILL
+                       :teleports TELEPORT
+                       :cloning CLONE
+                       :spawns SPAWN)))
+                  boosters)))))
 
 (defn place-bot [level]
   (let [[x y] (first (shuffle (points-by-value level EMPTY)))]
@@ -463,6 +466,15 @@
   (def lvl (generate-level "puzzle.cond"))
   (+ 1 (count (icfpc.writer/segments lvl)))
   (spit "puzzle-solved.desc" (icfpc.writer/desc lvl))
+
+  (:boosters lvl)
+
+  (select-keys puzzle [:extra-hands
+  :fast-wheels
+  :drills
+  :teleports
+  :cloning
+  :spawns])
 
   *e
 
