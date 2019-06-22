@@ -28,7 +28,7 @@
 (defn parse-puzzle [puzzle-name]
   (let [description (slurp (str "puzzles/" puzzle-name))
         [_ params include exclude] (re-matches #"(.*)#(.*)#(.*)" description)
-        [block-number epoch t-size v-min v-max extra-hands fast-wheels drills teleports cloning spawns] (split params #",")]
+        [block-number epoch t-size v-min v-max extra-hands fast-wheels drills teleports cloning spawns] (map #(Integer/parseInt %) (split params #","))]
     {:block-number block-number
      :epoch epoch
      :t-size t-size
@@ -43,7 +43,3 @@
      :include (parse-points include)
      :exclude (parse-points exclude)
      }))
-
-(comment
-
-  )

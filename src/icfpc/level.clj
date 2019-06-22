@@ -267,7 +267,7 @@
             level
             (range (:height level)))))
 
-(defn collect-boosters [boosters]
+(defn build-boosters [boosters]
     (into {}
           (map (fn [[b [x y]]]
                  [[x y] b]))
@@ -292,7 +292,7 @@
                     :width              width
                     :height             height
                     :grid               (vec (repeat (* width height) OBSTACLE))
-                    :boosters           (collect-boosters boosters)
+                    :boosters           (build-boosters boosters)
                     :x                  (first bot-point)
                     :y                  (second bot-point)
                     :layout             [[0 0] [1 0] [1 1] [1 -1]]
@@ -304,8 +304,49 @@
     (assoc level :weights (weights level))))
 
 
+(defn generate-level [puzzle-name]
+  (let [puzzle (parser/parse-puzzle puzzle-name)
+        t-size (:t-size puzzle)
+        init-level {:name               (str puzzle-name ".desc")
+                    :width              t-size
+                    :height             t-size
+                    :grid               (vec (repeat (* t-size t-size) \?))
+                    :boosters           {}
+                    :x                  0
+                    :y                  0
+                    :layout             [[0 0] [1 0] [1 1] [1 -1]]
+                    :collected-boosters {}
+                    :active-boosters    {}
+                    :score              0
+                    :path               ""}
+        with-include (reduce (fn [level [x y]]
+                               (set-level level x y EMPTY))
+                             init-level
+                             (:include puzzle))
+        with-exclude (reduce (fn [level [x y]]
+                               (set-level level x y OBSTACLE))
+                             with-include
+                             (:exclude puzzle))]
+    (def puzzle puzzle)
+    with-exclude))
+
 
 (comment
+  (def puzzle (parser/parse-puzzle "puzzle.cond"))
+  (def lvl (generate-level "puzzle.cond"))
+  (:width lvl)
+  (:height lvl)
+
+
+  (icfpc.bot/print-level lvl :colored? false)
+
+  (:t-size puzzle)
+  (:v-min puzzle)
+  (:v-max puzzle)
+  (count (:include puzzle))
+  (count (:exclude puzzle))
+
+
   (= (ray-path [1 1] [3 0]) [[1 1] [2 0] [2 1] [3 0]])
   (= (ray-path [1 1] [3 2]) [[1 1] [2 1] [2 2] [3 2]])
 
@@ -322,7 +363,7 @@
                     (load-level (format "prob-%03d.desc" n)))
                   (range 1 51)))
 
-  (collect-boosters
+  (build-boosters
    (:boosters (parser/parse-level "prob-050.desc")))
 
   (doseq [lvl lvls]

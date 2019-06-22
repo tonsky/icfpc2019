@@ -214,8 +214,10 @@
 
 (defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
-  (doseq [y (range (min (dec height) (+ y 20)) (dec (max 0 (- y 20))) -1)]
-    (doseq [x (range (max 0 (- x 50)) (min width (+ x 50)))
+  (doseq [y (range (min (dec height) (+ y 20))
+                   (dec (max 0 (- y 20))) -1)]
+    (doseq [x (range (max 0 (- x 50))
+                     (min width (+ x 50)))
             :let [v (get-level level x y)
                   booster (get boosters [x y])]]
         (cond
