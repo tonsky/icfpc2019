@@ -377,6 +377,27 @@
     (recur (inflate level) min-area)
     level))
 
+(defn place-boosters [level boosters]
+  (let [availible-positions (shuffle (points-by-value level EMPTY))]
+      (reduce
+       (fn [level [i [booster count]]]
+         (let [[x y] (get availible-positions i)]
+           (set-level level x y (case booster
+                                  :extra-hands EXTRA_HAND
+                                  :fast-wheels FAST_WHEELS
+                                  :drills DRILL
+                                  :teleports TELEPORT
+                                  :cloning CLONE
+                                  :spawns SPAWN))))
+       level
+       (map (fn [i v] [i v])
+            (range)
+            boosters))))
+
+(defn place-bot [level]
+  (let [[x y] (first (shuffle (points-by-value level EMPTY)))]
+    (assoc level :x x :y y )))
+
 (defn generate-level [puzzle-name]
   (let [puzzle (parser/parse-puzzle puzzle-name)
         t-size (:t-size puzzle)
@@ -404,12 +425,14 @@
                (:exclude puzzle))
         level (fill-connected-component level (:exclude puzzle) OBSTACLE EMPTY)
         level (inflate-min-area level (min-area (:t-size puzzle)))
-        level (fill-bfs level (last (:exclude puzzle)) OBSTACLE EMPTY)]
-    (reduce (fn [level [x y]]
-              (set-level level x y EMPTY))
-            level
-            (points-by-value level UNKNOWN))))
-
+        level (fill-bfs level (last (:exclude puzzle)) OBSTACLE EMPTY)
+        level (reduce (fn [level [x y]]
+                        (set-level level x y EMPTY))
+                      level
+                      (points-by-value level UNKNOWN))
+        level (place-boosters level (select-keys puzzle [:extra-hands :fast-wheels :drills :teleports :cloning :spawns]))
+        level (place-bot level)]
+    level))
 
 
 *e
@@ -438,6 +461,12 @@
 
   (def puzzle (parser/parse-puzzle "puzzle.cond"))
   (def lvl (generate-level "puzzle.cond"))
+  (+ 1 (count (icfpc.writer/segments lvl)))
+  (spit "puzzle-solved.desc" (icfpc.writer/desc lvl))
+
+  *e
+
+  (:v-max puzzle)
 
   *e
 
