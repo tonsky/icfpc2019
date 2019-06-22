@@ -1,5 +1,6 @@
 (ns icfpc.bot
   (:require
+   [clojure.set :as set]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [icfpc.core :refer :all]
@@ -28,22 +29,24 @@
                :bot/x
                :bot/y))
 
-(defn hand-place-variants [level]
-  (let [variants  (sort-by (fn [[x y]]
-                             (+ (Math/abs x) (Math/abs y)))
-                           (vec
-                            (clojure.set/difference
-                             (set (mapcat (fn [[x y]] [[x (inc y)]
-                                                       [x (dec y)]
-                                                       [(dec x) y]
-                                                       [(inc x) y]])
-                                          (:layout level)))
-                             (set (:layout level)))))]
-    (reverse variants)))
+(defn next-hand [level]
+  (let [layout (set (:layout level))]
+    (cond
+      (contains? layout [1 0]) ;; rigth
+      [1 (inc (apply max (map second layout)))]
+
+      (contains? layout [0 1]) ;; up
+      [(dec (apply min (map first layout))) 1]
+
+      (contains? layout [-1 0]) ;; left
+      [-1 (dec (apply min (map second layout)))]
+
+      (contains? layout [0 -1]) ;; down
+      [(inc (apply max (map first layout))) -1])))
 
 (defn add-extra-hand [level]
   (when (pos? (get (:collected-boosters level) EXTRA_HAND 0))
-    (let [[x y :as p] (first (hand-place-variants level))]
+    (let [[x y :as p] (next-hand level)]
       (when (some? p)
         (-> level
             (update :layout conj [x y])
@@ -133,6 +136,7 @@
       (update :path str JUMP "(" bx "," by ")"))))
 
 (def ^:dynamic *max-path-len*)
+(def ^:dynamic *disabled*)
 
 (defn act [level action]
   (condp = action
@@ -178,7 +182,8 @@
 
           :else
           (let [last-action (last path)
-                moves (for [action [SET_BEAKON EXTRA_HAND FAST_WHEELS #_DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                moves (for [action [SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL ROTATE_CW ROTATE_CCW RIGHT LEFT UP DOWN]
+                            :when  (not (contains? *disabled* action))
                             :when  (not= last-action (counter action))
                             :let   [level' (act level action)]
                             :when  (some? level')
@@ -204,17 +209,21 @@
 
           :else
           (let [moves (->>
-                        (for [action [WAIT :jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS #_DRILL RIGHT LEFT UP DOWN]
+                        (for [action [:jump0 :jump1 :jump2 SET_BEAKON EXTRA_HAND FAST_WHEELS DRILL RIGHT LEFT UP DOWN]
+                              :when  (not (contains? *disabled* action))
                               :let   [level' (act level action)]
                               :when  (some? level')
                               :when  (or (not (contains? #{:jump0 :jump1 :jump2 RIGHT LEFT UP DOWN} action))
                                          (not (contains? seen [(:x level') (:y level')])))]
                           (wear-off-boosters level'))
                         (sort-by :score)
-                        (reverse))]
+                        (reverse))
+                moves' (if (empty? moves)
+                         [(-> level (act WAIT) (wear-off-boosters))]
+                         moves)]
             (recur
-              (into (pop queue) moves)
-              (into seen (map (fn [l] [(:x l) (:y l)]) moves)))))))))
+              (into (pop queue) moves')
+              (into seen (map (fn [l] [(:x l) (:y l)]) moves')))))))))
 
 (defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored?] :or {colored? true}}]
   (println name)
@@ -251,10 +260,11 @@
 (defn path-score [path]
   (count (re-seq #"[A-Z]" path)))
 
-(defn solve [level & [{:keys [debug? lookahead? max-path-len delay]
-                       :or {lookahead? true, debug? true, max-path-len 2}}]]
+(defn solve [level & [{:keys [debug? lookahead? max-path-len delay disabled]
+                       :or {lookahead? true, debug? true, max-path-len 2, disabled #{}}}]]
   (let [t0 (System/currentTimeMillis)]
-    (binding [*max-path-len* max-path-len]
+    (binding [*max-path-len* max-path-len
+              *disabled*     disabled]
       (loop [level      (mark-wrapped level)
              last-frame (System/currentTimeMillis)]
         (if-some [level' (when (pos? (:empty level))
