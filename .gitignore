@@ -16,5 +16,3 @@ figwheel_server.log
 /.cpcache*
 .DS_Store
 solutions.zip
-*.sol
-problems copy
