@@ -216,10 +216,10 @@
               (into (pop queue) moves)
               (into seen (map (fn [l] [(:x l) (:y l)]) moves)))))))))
 
-(defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored?] :or {colored? true}}]
+(defn print-level [{:keys [width height name boosters x y] :as level} & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]
   (println name)
-  (doseq [y (range (min (dec height) (+ y 30)) (dec (max 0 (- y 30))) -1)]
-    (doseq [x (range (max 0 (- x 50)) (min width (+ x 50)))
+  (doseq [y (range (min (dec height) (+ y max-h)) (dec (max 0 (- y max-h))) -1)]
+    (doseq [x (range (max 0 (- x max-w)) (min width (+ x max-w)))
             :let [v (get-level level x y)
                   booster (get boosters [x y])]]
         (cond

@@ -306,6 +306,39 @@
       :weights (weights level)
       :empty   (count (filter #(= EMPTY %) (:grid level))))))
 
+(defn neighbours [level [x y]]
+  (filter #(valid-point? level %) [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]]))
+
+(defn build-path [parents point]
+  (loop [path []
+         current point
+         depth 0]
+    (if-let [parent (get parents current)]
+      (if (or (< 10000 depth) (= parent current))
+        (do
+          (prn "PATH TOO LONG!")
+          (conj path current))
+        (recur (conj path current) parent (inc depth)))
+      path)))
+
+(defn bfs [level [x y :as start]]
+  (loop [q (queue start)
+         parents {start nil}]
+    (if-let [p (peek q)]
+      (let [ns (filter (fn [[x y :as n]]
+                         (and
+                          (not (contains? parents n))
+                          (not= (get-level level x y) OBSTACLE)))
+                       (neighbours level p))
+            parents' (reduce (fn [ps n]
+                               (assoc ps n p))
+                             parents ns)
+            finded (filter (fn [[x y :as n]]
+                             (= (get-level level x y) EMPTY)) ns)]
+        (if (not-empty finded)
+          (build-path parents' (first finded))
+          (recur (into (pop q) ns) parents')))
+      (prn "CANT FIND PATH!"))))
 
 (defn generate-level [puzzle-name]
   (let [puzzle (parser/parse-puzzle puzzle-name)
@@ -313,7 +346,7 @@
         init-level {:name               (str puzzle-name ".desc")
                     :width              t-size
                     :height             t-size
-                    :grid               (vec (repeat (* t-size t-size) \?))
+                    :grid               (vec (repeat (* t-size t-size) UNKNOWN))
                     :boosters           {}
                     :x                  0
                     :y                  0
@@ -322,26 +355,35 @@
                     :active-boosters    {}
                     :score              0
                     :path               ""}
-        with-include (reduce (fn [level [x y]]
-                               (set-level level x y EMPTY))
-                             init-level
-                             (:include puzzle))
         with-exclude (reduce (fn [level [x y]]
                                (set-level level x y OBSTACLE))
-                             with-include
-                             (:exclude puzzle))]
-    (def puzzle puzzle)
-    with-exclude))
+                             init-level
+                             (:exclude puzzle))
+        [i-x i-y]  (first (:include puzzle))
+        include-last (rest (:include puzzle))
+        level (reduce (fn [level next-include]
+                        (let [path (bfs level next-include)]
+                          (reduce (fn [level [px py]]
+                                    (set-level level px py EMPTY))
+                                  level
+                                  path)))
+                      (set-level with-exclude i-x i-y EMPTY)
+                      include-last)]
+    (reduce (fn [level [x y]]
+              (set-level level x y EMPTY)) level (:include puzzle))))
 
 
 (comment
   (def puzzle (parser/parse-puzzle "puzzle.cond"))
   (def lvl (generate-level "puzzle.cond"))
+
+  *e
+
+
   (:width lvl)
   (:height lvl)
 
-
-  (icfpc.bot/print-level lvl :colored? false)
+  (icfpc.bot/print-level lvl :colored? false :max-w 1000 :max-h 1000)
 
   (:t-size puzzle)
   (:v-min puzzle)

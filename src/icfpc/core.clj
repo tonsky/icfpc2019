@@ -12,6 +12,7 @@
 (def X_UNKNOWN_PERK \?)
 (def TELEPORT \R)
 (def WAIT \Z)
+(def UNKNOWN \?)
 
 (def UP    \W)
 (def DOWN  \S)
