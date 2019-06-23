@@ -198,7 +198,7 @@
   (let [x' (+ x dx) y' (+ y dy)]
     (when (can-step? x' y' drill? level)
       (if fast?
-        (let [x'' (+ x' dx) y'' (+ y dy)]
+        (let [x'' (+ x' dx) y'' (+ y' dy)]
           (if (can-step? x'' y'' drill? level)
             (->Point x'' y'')
             (->Point x' y')))
@@ -224,7 +224,7 @@
     ;   layout)
     :else 0))
 
-(defn -explore [{ox :x oy :y :keys [active-boosters beakons] :as level}]
+(defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level}]
   (let [paths (HashMap. {(->Point ox oy) []})
         queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
     (loop [max-len   *explore-depth*
@@ -253,7 +253,7 @@
               (.add queue [path' pos' (spend fast) (spend drill)]))
             ; (prn "path" path "best-path" best-path)
             (cond+
-              (empty? path)     (recur max-len best-path best-rate)
+              (empty? path)      (recur max-len best-path best-rate)
               :let [rate (/ (rate pos level) (count path))]
               (zero? rate)       (recur max-len best-path best-rate)
               (zero? best-rate)  (recur max-len path rate)
@@ -386,7 +386,7 @@
                   (if (> (:score acc') (:score level))
                     (reduced acc')
                     acc')
-                  (reduced acc)))
+                  (throw (Exception. (str "Wow path failed from" (:x level) (:y level) "path" path)))))
               level
               path))
 
