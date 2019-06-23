@@ -7,6 +7,7 @@
    [clojure.java.shell :as shell]
    [clojure.data.json :as json])
   (:import
+   [java.io File]
    [java.util.concurrent CompletableFuture]))
 
 (set! *warn-on-reflection* true)
@@ -17,20 +18,20 @@
 
 (defn compare-solutions [name score]
   (->> (file-seq (io/file "."))
-    (filter #(str/starts-with? (.getName %) "day"))
-    (sort-by #(.getName %))
+    (filter #(str/starts-with? (.getName ^File %) "day"))
+    (sort-by #(.getName ^File %))
     (map #(io/file % (str name ".sol")))
-    (filter #(.exists %))
+    (filter #(.exists ^File %))
     (map #(bot/path-score (slurp %)))
     (distinct)
     (map #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
 (defn left []
   (- (->> (file-seq (io/file "problems"))
-          (filter #(str/ends-with? (.getName %) ".desc"))
+          (filter #(str/ends-with? (.getName ^File %) ".desc"))
           (count))
      (->> (file-seq (io/file "problems"))
-          (filter #(str/ends-with? (.getName %) ".sol"))
+          (filter #(str/ends-with? (.getName ^File %) ".sol"))
           (count))))
 
 (defn solve [name & [opts]]
@@ -58,7 +59,7 @@
   (let [from  (cond-> from (string? from) (Integer/parseInt))
         till  (cond-> till (string? till) (Integer/parseInt))
         names (->> (file-seq (io/file "problems"))
-                 (map #(.getPath %))
+                 (map #(.getPath ^File %))
                  (filter #(str/ends-with? % ".desc"))
                  (keep #(second (re-matches #".*/(prob-\d\d\d)\.desc" %)))
                  sort
@@ -95,7 +96,7 @@
 
 (defn score-solutions [path]
   (->> (file-seq (io/file path))
-       (filter #(str/ends-with? (.getName %) ".sol"))
+       (filter #(str/ends-with? (.getName ^File %) ".sol"))
        (map slurp)
        (map bot/path-score)
        (reduce + 0)))
