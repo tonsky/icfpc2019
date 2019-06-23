@@ -64,11 +64,19 @@
 (defn fast? [level]
   (pos? (get (:active-boosters level) FAST_WHEELS 0)))
 
+(defn has-space? [{:keys [x y] :as level}]
+  (or
+    (every? #(= EMPTY (get-level level (+ x %) y OBSTACLE)) (range 1 5))
+    (every? #(= EMPTY (get-level level (- x %) y OBSTACLE)) (range 1 5))
+    (every? #(= EMPTY (get-level level x (+ y %) OBSTACLE)) (range 1 5))
+    (every? #(= EMPTY (get-level level x (- y %) OBSTACLE)) (range 1 5))))
+
 (defn add-fast-wheels [level]
   (when (and
           (not (*disabled* FAST_WHEELS))
           (pos? (get (:collected-boosters level) FAST_WHEELS 0))
-          (not (fast? level)))
+          (not (fast? level))
+          (has-space? level))
     (-> level
       (spend :collected-boosters FAST_WHEELS)
       (assoc-in [:active-boosters FAST_WHEELS] 51)

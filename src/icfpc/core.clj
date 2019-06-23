@@ -50,8 +50,15 @@
 
 (defn coord->idx [level x y] (+ x (* y (:width level))))
 
-(defn get-level [level x y]
-  (nth (:grid level) (coord->idx level x y)))
+(defn get-level
+  ([level x y]
+   (nth (:grid level) (coord->idx level x y)))
+  ([level x y default]
+   (if (and
+         (< -1 x (:width level))
+         (< -1 y (:height level)))
+     (nth (:grid level) (coord->idx level x y))
+     default)))
 
 (defn set-level [level x y value]
   (update level :grid assoc (coord->idx level x y) value))
