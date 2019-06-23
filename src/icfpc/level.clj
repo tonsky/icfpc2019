@@ -500,11 +500,66 @@
         level (place-bot level)]
     level))
 
+(defn shuffle
+  "Return a random permutation of coll"
+  {:added "1.2"
+   :static true}
+  [^java.util.Collection coll]
+  (let [al (java.util.ArrayList. coll)]
+    (java.util.Collections/shuffle al (java.util.Random. 42))
+    (clojure.lang.RT/vector (.toArray al))))
+
+(defn generate-zones [level]
+  (let [average-area 100
+        width (:width level)
+        height (:height level)
+        empty-points (points-by-value level EMPTY)
+        zones-count (int (/ (count empty-points) average-area))
+        centers (map-indexed vector (take zones-count (shuffle empty-points)))
+        zones-map {:width width
+                   :height height
+                   :grid (vec (repeat (* width height) 0))}
+        zones-map (reduce (fn [zm [idx [x y]]]
+                            (set-level zm x y idx))
+                          zones-map
+                          centers)
+        zones-map (loop [zones zones-map
+                         iteration 0]
+                    (let [{:keys [zm end?]} (reduce (fn [{:keys [zm end?]} [x y]]
+                                                      (if (= (get-level zm x y) 0)
+                                                        (let [z (first (keep (fn [[nx ny]]
+                                                                               (when (= EMPTY (get-level level nx ny))
+                                                                                 (let [z (get-level zones nx ny)]
+                                                                                   (when (not= z 0)
+                                                                                     z))))
+                                                                             (neighbours zm [x y])))]
+                                                          (if (some? z)
+                                                            {:zm (set-level zm x y z)
+                                                             :end? end?}
+                                                            {:zm zm
+                                                             :end? false}))
+                                                        {:zm zm :end? end?}))
+                                                    {:zm zones :end? true}
+                                                    empty-points)]
+                      (if (and (< iteration 1000) (not end?))
+                        (recur zm (inc iteration))
+                        (do
+                          (when (= iteration 10000)
+                            (prn "Cant generate zones"))
+                          zm))))]
+    (assoc level :zones-map zones-map)))
+
 (comment
+  (def proto-lvl (load-level "prob-150.desc"))
+  (def lvl (generate-zones proto-lvl))
+  (count (:zones-map lvl))
+
+  (icfpc.bot/print-level lvl :max-w 10000 :max-h 10000 :colored? false  :zones? true)
+  *e
+
+  (+ 2 2)
 
   (count (points-by-value lvl' EMPTY))
-
-  (icfpc.bot/print-level lvl :colored? false :max-w 1000 :max-h 1000)
 
 #{:block-number
   :epoch
@@ -519,6 +574,7 @@
   :spawns
   :include
   :exclude}
+
 
   (def puzzle (parser/parse-puzzle "puzzle.cond"))
   (def lvl (generate-level "puzzle.cond"))

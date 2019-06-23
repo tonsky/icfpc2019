@@ -240,9 +240,13 @@
         :true
         :else))))
 
+(defn zone-char [n]
+  (if (= n 0)
+    \0
+    (char (+ (dec (int \a)) n))))
 
 (defn print-level [{:keys [width height name boosters x y spawns] :as level} 
-                   & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]
+                   & {:keys [colored? max-w max-h zones?] :or {max-w 50 max-h 30 colored? true zones? false}}]
   (println name)
   (doseq [y (range (min (dec height) (+ y max-h)) (dec (max 0 (- y max-h))) -1)]
     (doseq [x (range (max 0 (- x max-w)) (min width (+ x max-w)))
@@ -265,9 +269,13 @@
             (print "X"))
 
           (= v EMPTY)
-          (if colored?
-            (print "\033[103m.\033[0m")
-            (print "•"))
+          (if zones?
+            (if colored?
+              (print "\033[103m" (zone-char (get-level (:zones-map level) x y)) "\033[0m")
+              (print (zone-char (get-level (:zones-map level) x y))))
+            (if colored?
+              (print "\033[103m.\033[0m")
+              (print "•")))
 
           (= v WRAPPED)
           (if colored?
