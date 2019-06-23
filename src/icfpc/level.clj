@@ -21,7 +21,7 @@
     (int x)
     (int x)))
 
-(defn ray-path [from-point to-point]
+(defn ray-path-general [from-point to-point]
   (let [[from-x from-y :as from] (min-key first from-point to-point)
         [to-x to-y :as to] (max-key first from-point to-point)]
     (if (= from-x to-x)
@@ -44,6 +44,15 @@
                             [(round-up (- (+ to-y 1/2) (* k 1/2))) to-y]
                             [to-y (round-down (- (+ to-y 1/2) (* k 1/2)))])]
            (map (fn [y] [to-x y]) (range low (inc high)))))))))
+
+(defn ray-path [from-point to-point]
+  (let [[from-x from-y] from-point
+        [to-x to-y] to-point]
+    (assert (and (= from-x (dec to-x))
+                 (<= from-y to-y)))
+    (concat
+     (mapv (fn [y] [from-x y]) (range from-y (inc (long (Math/ceil (/ to-y 2.0))))))
+     (mapv (fn [y] [to-x y]) (range (long (Math/floor (/ to-y 2.0))) (inc to-y))))))
 
 (defn visible? [level from to]
   (every? true? (map (fn [[x y :as p]]
