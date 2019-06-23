@@ -13,6 +13,11 @@
         (= c1 :when-some)    `(if-some ~c2 ~(first cs) (cond+ ~@(next cs)))
         :else                `(if ~c1 ~c2 (cond+ ~@cs))))))
 
+(defrecord Point [x y]
+  clojure.lang.Indexed
+  (nth [_ i] (case i 0 x 1 y))
+  (nth [_ i nf] (case i 0 x 1 y nf)))
+
 (def EMPTY \•)
 (def OBSTACLE \O)
 (def WRAPPED \+)
@@ -34,12 +39,14 @@
 (def SET_BEAKON \R)
 (def JUMP       \T)
 
-(defn spend [map k k2]
-  (let [v ((map k) k2)]
-    (cond
-      (nil? v) map
-      (> v 1)  (update map k assoc k2 (dec v))
-      :else    (update map k dissoc k2))))
+(defn spend
+  ([v] (cond (nil? v) nil (> v 1) (dec v) :else 0))
+  ([map k k2]
+   (let [v ((map k) k2)]
+     (cond
+       (nil? v) map
+       (> v 1)  (update map k assoc k2 (dec v))
+       :else    (update map k dissoc k2)))))
 
 (defn coord->idx [level x y] (+ x (* y (:width level))))
 
@@ -51,3 +58,6 @@
 
 (defn seek [pred coll]
   (some #(if (pred %) %) coll))
+
+(defn path-score [path]
+  (count (re-seq #"[A-Z]" path)))
