@@ -224,7 +224,7 @@
     ;   layout)
     :else 0))
 
-(defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level}]
+(defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level} rate]
   (let [paths (HashMap. {(->Point ox oy) []})
         queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
     (loop [max-len   *explore-depth*
@@ -349,13 +349,29 @@
   (when (some? delay)
     (Thread/sleep delay)))
 
+(defn exact-find [item]
+  (fn [x y level]
+    (if (= (get-level level x y) item)
+      1
+      0)))
+
+(defn collect-clones [level]
+  (if (some? (get (:boosters level) CLONE))
+    (let [level' (loop [level level]
+                   (if-let [path (explore level (exact-find CLONE))]
+                     (recur (reduce act level path))
+                     level))
+          path (explore level' (exact-find SPAWN))]
+      (reduce act level' path))
+    level))
+
 (defn solve [level & [{:keys [debug? delay disabled explore-depth]
                        :or {debug? true, disabled #{}, explore-depth 10}}]]
   (let [t0 (System/currentTimeMillis)
         *last-frame (atom 0)]
     (binding [*disabled*      disabled
               *explore-depth* explore-depth]
-      (loop [level (mark-wrapped level)]
+      (loop [level (collect-clones (mark-wrapped level))]
         (when (.isInterrupted (Thread/currentThread))
           (throw (InterruptedException.)))
 
@@ -375,7 +391,7 @@
           :when-some [level' (apply-boosters level)]
           (recur level')
 
-          :when-some [path (or (explore level) (wait-off-fast level))]
+          :when-some [path (or (explore level rate) (wait-off-fast level))]
           (recur
             (reduce
               (fn [acc action]
