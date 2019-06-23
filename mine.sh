@@ -1,3 +1,5 @@
-#!/bin/bash -e
+#! /bin/bash -e
 
-lein run -m icfpc.main/mine
+echo
+echo $(date)
+~/bin/lein run -m icfpc.main/mine
