@@ -209,19 +209,20 @@
     ;; TODO check current zone
     (boosters [x y]) 100
     ; (= EMPTY (get-level level x y)) (max 1 (aget weights (coord->idx level x y)))
-    (= EMPTY (get-level level x y)) 1
-    ; :else
-    ; (reduce
-    ;   (fn [acc [dx dy]]
-    ;     (if (and
-    ;           (or
-    ;             (= [0 0] [dx dy])
-    ;             (valid-hand? x y dx dy level))
-    ;           (= EMPTY (get-level level (+ x dx) (+ y dy))))
-    ;       (+ acc 1)
-    ;       acc))
-    ;   0
-    ;   layout)
+    ; (= EMPTY (get-level level x y)) 1
+    :else
+    (reduce
+      (fn [acc [dx dy]]
+        (let [x' (+ x dx) y' (+ y dy)]
+          (if (and
+                (or
+                  (= [0 0] [dx dy])
+                  (valid-hand? x y dx dy level))
+                (= EMPTY (get-level level x' y')))
+            (+ acc (max 1 (aget weights (coord->idx level x' y'))))
+            acc)))
+      0
+      layout)
     :else 0))
 
 (defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level} rate]
