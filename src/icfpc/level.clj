@@ -493,12 +493,13 @@
     (clojure.lang.RT/vector (.toArray al))))
 
 (defn generate-zones [level]
-  (let [average-area 100
+  (let [average-area 70
+        max-zones-count 10
         width (:width level)
         height (:height level)
         max-iteration-count (* width height)
         empty-points (points-by-value level EMPTY)
-        zones-count (inc (int (/ (count empty-points) average-area)))
+        zones-count (min max-zones-count (inc (int (/ (count empty-points) average-area))))
         centers (map-indexed (fn [idx z] [(inc idx) z]) (take zones-count (shuffle* empty-points)))
         zones-map {:width width
                    :height height

@@ -287,7 +287,9 @@
 (defn zone-char [n]
   (if (= n 0)
     \0
-    (char (+ (dec (int \a)) n))))
+    (char
+     (+ (dec (int \a))
+        (mod n (- (int \z) (int \a)))))))
 
 (defn print-level [{:keys [width height name boosters x y beakons spawns] :as level} 
                    & {:keys [colored? max-w max-h zones?] :or {max-w 50 max-h 20 colored? true zones? false}}]
@@ -347,6 +349,7 @@
   (println "Hands:" (dec (count (:layout level))) "layout:" (:layout level))
   (println "Beakons:" (:beakons level))
   (println "Score:" (path-score (:path level)) #_#_"via" (:path level))
+  (println "Zone: " (zone-char (:current-zone level)))
   ; (println "Areas:" (:zones-area level))
   (when (some? delay)
     (Thread/sleep delay)))
