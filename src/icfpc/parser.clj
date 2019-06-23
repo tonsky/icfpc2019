@@ -49,8 +49,15 @@
 (defn validate-puzzle
   "Check if generated map matches puzzle"
   [{:keys [t-size v-min v-max extra-hands fast-wheels drills teleports cloning spawns include exclude] :as puzzle}
-   {:keys [width height grid boosters] :as level}]
-  (let [min-size (- t-size (Math/floor (* 0.1 t-size)))]
+   {:keys [grid boosters] :as level}]
+  (let [segments (writer/segments level)
+        min-x    (apply min (map first segments))
+        max-x    (apply max (map first segments))
+        min-y    (apply min (map second segments))
+        max-y    (apply max (map second segments))
+        width    (- max-x min-x)
+        height   (- max-y min-y)
+        min-size (- t-size (Math/floor (* 0.1 t-size)))]
     (when (< (max width height) min-size)
       (throw (Exception. (str "Dimensions are too small: " width "x" height " < " min-size)))))
   (let [area (count (filter #(= EMPTY %) grid))

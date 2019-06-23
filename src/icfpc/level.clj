@@ -453,6 +453,15 @@
                     (throw (Exception. (str "Can’t add enough edges: has " (count segments) " need " (:v-min puzzle)))))]
         (recur (set-level level x y EMPTY) puzzle)))))
 
+(defn add-boundaries [{:keys [width height] :as level} puzzle]
+  (let [exclude (set (:exclude puzzle))
+        p1      (->> (map (fn [y] [2 y]) (range 2 (- height 2)))
+                  (seek #(not (exclude %))))
+        p2      (->> (map (fn [y] [(- width 2) y]) (range 2 (- height 2)))
+                  (reverse)
+                  (seek #(not (exclude %))))]
+    (update puzzle :include into [p1 p2])))
+
 (defn generate-level [puzzle-name]
   (let [puzzle (parser/parse-puzzle puzzle-name)
         t-size (:t-size puzzle)
@@ -472,6 +481,7 @@
                         (set-level level x y OBSTACLE))
                       init-level
                       (:exclude puzzle))
+        puzzle (add-boundaries level puzzle)
         level (fill-connected-component level (:include puzzle) EMPTY OBSTACLE)
         level (reduce
                (fn [level [x y]]
