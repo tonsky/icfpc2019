@@ -56,6 +56,9 @@
 (defn set-level [level x y value]
   (update level :grid assoc (coord->idx level x y) value))
 
+(defn get-zone [level x y]
+  (nth (:zones-grid level) (coord->idx level x y)))
+
 (defn seek [pred coll]
   (some #(if (pred %) %) coll))
 
