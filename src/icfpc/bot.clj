@@ -8,8 +8,9 @@
   (:import
    [java.util HashMap HashSet ArrayDeque]))
 
-(def ^:dynamic *disabled*)
-(def ^:dynamic *explore-depth*)
+(def ^:dynamic *disabled* #{})
+(def ^:dynamic *explore-depth* 10)
+(def ^:dynamic *zones?* true)
 
 (s/def :level/width nat-int?)
 (s/def :level/height nat-int?)
@@ -203,7 +204,7 @@
 (defn rate [[x y] {:keys [boosters weights layout width height current-zone] :as level}]
   (cond
     (boosters [x y])
-    (if (= current-zone (get-zone level x y)) 100 0)
+    (if (or (not *zones?*) (= current-zone (get-zone level x y))) 100 0)
     ; (= EMPTY (get-level level x y)) (max 1 (aget weights (coord->idx level x y)))
     ; (= EMPTY (get-level level x y)) 1
     :else
@@ -215,7 +216,7 @@
                   (= [0 0] [dx dy])
                   (valid-hand? x y dx dy level))
                 (= EMPTY (get-level level x' y'))
-                (= current-zone (get-zone level x y)))
+                (or (not *zones?*) (= current-zone (get-zone level x y))))
             (+ acc (max 1 (aget weights (coord->idx level x' y'))))
             acc)))
       0
@@ -371,12 +372,13 @@
       (-> level
         (assoc :current-zone (get-zone level x y)))))) ;; TODO set path too
 
-(defn solve [level & [{:keys [debug? delay disabled explore-depth]
-                       :or {debug? true, disabled #{}, explore-depth 10}}]]
+(defn solve [level & [{:keys [debug? delay disabled zones? explore-depth]
+                       :or {debug? true}}]]
   (let [t0 (System/currentTimeMillis)
         *last-frame (atom 0)]
-    (binding [*disabled*      disabled
-              *explore-depth* explore-depth]
+    (binding [*disabled*      (or disabled *disabled*)
+              *explore-depth* (or explore-depth *explore-depth*)
+              *zones?*        (if (some? zones?) zones? *zones?*)]
       (loop [level (mark-wrapped level)]
         (when (.isInterrupted (Thread/currentThread))
           (throw (InterruptedException.)))
@@ -393,7 +395,7 @@
              :score (path-score (:path level))
              :time  (- (System/currentTimeMillis) t0)})
 
-          :when-some [level' (choose-next-zone level)]
+          :when-some [level' (when *zones?* (choose-next-zone level))]
           (recur level')
 
           :when-some [level' (or

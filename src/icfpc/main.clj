@@ -77,7 +77,7 @@
       (into-array CompletableFuture
         (for [name names]
           (CompletableFuture/runAsync
-            ^Runnable (fn [] (solve name {:t0 t0 :throw? false :*left *left}))
+            ^Runnable (bound-fn [] (solve name {:t0 t0 :throw? false :*left *left}))
             executor)))
       (CompletableFuture/allOf)
       (.join))
