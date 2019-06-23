@@ -18,6 +18,8 @@
         :else                `(if ~c1 ~c2 (cond+ ~@cs))))))
 
 (defrecord Point [x y]
+  Object
+  (toString [_] (str "(" x "," y ")"))
   clojure.lang.Indexed
   (nth [_ i] (case i 0 x 1 y))
   (nth [_ i nf] (case i 0 x 1 y nf)))

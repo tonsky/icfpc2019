@@ -58,7 +58,6 @@
         (-> level
             (update :layout conj [x y])
             (spend  :collected-boosters EXTRA_HAND)
-            (update :score + 1000)
             (update :path str "B(" x "," y ")"))))))
 
 (defn fast? [level]
@@ -80,7 +79,6 @@
     (-> level
       (spend :collected-boosters FAST_WHEELS)
       (assoc-in [:active-boosters FAST_WHEELS] 51)
-      (update :score + 1000)
       (update :path str FAST_WHEELS))))
 
 (defn drill? [level]
@@ -94,7 +92,6 @@
     (-> level
       (spend :collected-boosters DRILL)
       (assoc-in [:active-boosters DRILL] 31)
-      (update :score + 1000)
       (update :path str DRILL))))
 
 (defn set-beakon [level]
@@ -111,7 +108,6 @@
     (-> level
       (spend :collected-boosters TELEPORT)
       (update :beakons (fnil conj []) [(:x level) (:y level)])
-      (update :score + 1000)
       (update :path str SET_BEAKON))))
 
 (defn extra-move [level dx dy]
@@ -185,15 +181,21 @@
    ROTATE_CW ROTATE_CCW
    ROTATE_CCW ROTATE_CW})
 
-(defn can-step? [x y drill? {:keys [width height] :as level}]
-  (and (< -1 x width) (< -1 y height) (or drill? (not= OBSTACLE (get-level level x y)))))
+(defn can-step? [x y drill? drilled {:keys [width height] :as level}]
+  (and
+    (< -1 x width)
+    (< -1 y height)
+    (or
+      drill?
+      (drilled (->Point x y))
+      (not= OBSTACLE (get-level level x y)))))
 
-(defn step [x y dx dy fast? drill? level]
+(defn step [x y dx dy fast? drill? drilled level]
   (let [x' (+ x dx) y' (+ y dy)]
-    (when (can-step? x' y' drill? level)
+    (when (can-step? x' y' drill? drilled level)
       (if fast?
         (let [x'' (+ x' dx) y'' (+ y' dy)]
-          (if (can-step? x'' y'' drill? level)
+          (if (can-step? x'' y'' drill? drilled level)
             (->Point x'' y'')
             (->Point x' y')))
         (->Point x' y')))))
@@ -221,33 +223,34 @@
     :else 0))
 
 (defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level} rate-fn]
-  (let [paths (HashMap. {(->Point ox oy) []})
-        queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
+  (let [paths (HashSet. [(->Point ox oy)])
+        queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0) #{}]])]
     (loop [max-len   *explore-depth*
            best-path nil
            best-pos  nil
            best-rate 0]
-      (if-some [[path [x y :as pos] fast drill :as move] (.poll queue)]
+      (if-some [[path [x y :as pos] fast drill drilled :as move] (.poll queue)]
         (if (< (count path) max-len)
           ;; still exploring inside max-len
           (do
             ;; moves
             (doseq [[move dx dy] [[LEFT -1 0] [RIGHT 1 0] [UP 0 1] [DOWN 0 -1]]
-                    :let [pos' (step x y dx dy (pos? fast) (pos? drill) level)]
+                    :let  [pos' (step x y dx dy (pos? fast) (pos? drill) drilled level)]
                     :when (some? pos')
-                    :when (not (.containsKey paths pos'))
-                    :let [path' (conj path move)]]
-              (.put paths pos' path')
-              (.add queue [path' pos' (spend fast) (spend drill)]))
+                    :when (not (.contains paths pos'))
+                    :let  [path'    (conj path move)
+                           drilled' (cond-> drilled (pos? drill) (conj pos'))]]
+              (.add paths pos')
+              (.add queue [path' pos' (spend fast) (spend drill) drilled']))
             ;; jumps
             (doseq [[move pos'] [[:jump0 (nth (:beakons level) 0 nil)]
                                  [:jump1 (nth (:beakons level) 1 nil)]
                                  [:jump2 (nth (:beakons level) 2 nil)]]
                     :when (some? pos')
-                    :when (not (.containsKey paths pos'))
+                    :when (not (.contains paths pos'))
                     :let [path' (conj path move)]]
-              (.put paths pos' path')
-              (.add queue [path' pos' (spend fast) (spend drill)]))
+              (.add paths pos')
+              (.add queue [path' pos' (spend fast) (spend drill) drilled]))
             (cond+
               (empty? path)      (recur max-len best-path best-pos best-rate)
               :let [rate (/ (rate-fn pos level) (count path))]
@@ -262,7 +265,8 @@
             (do
               (.addFirst queue move)
               (recur (+ max-len *explore-depth*) nil nil 0)) ;; not found anything, try expand
-            (when best-path [best-path best-pos])))
+            (when best-path
+              [best-path best-pos])))
         (when best-path [best-path best-pos])))))
 
 (defn wait-off-fast [{:keys [active-boosters x y] :as level}]
@@ -405,24 +409,31 @@
                                  (collect-clone level)
                                  (explore level rate)
                                  (wait-off-fast level))]
-          (recur
-            (reduce
-              (fn [acc action]
-                (when-not (identical? acc level)
-                  (when (some? delay)
-                    (print-step acc delay)))
-                (if-some [acc' (some-> acc (act action) (wear-off-boosters))]
-                  (if (> (:empty level) (:empty acc'))
-                    (reduced acc')
-                    acc')
-                  (throw (Exception. (str "Wow path failed from" (:x level) (:y level) "path" path)))))
-              level
-              path))
+          (do
+            (recur
+              (reduce
+                (fn [acc action]
+                  (when-not (identical? acc level)
+                    (when (some? delay)
+                      (print-step acc delay)))
+                  (if-some [acc' (some-> acc (act action) (wear-off-boosters))]
+                    (if (> (:empty level) (:empty acc'))
+                      (reduced acc')
+                      acc')
+                    (do
+                      (print-step acc 0)
+                      (throw (Exception. (str "Wow path failed at action " action
+                                              " from (" (:x level) "," (:y level) ") "
+                                              "path: " (str/join path)))))))
+                level
+                path)))
 
           :else
           (do
             (print-step level nil)
-            (throw (Exception. (str "Stuck at " (:name level) ", left " (:empty level) " empty blocks, path: " (:path level))))))))))
+            (throw (Exception. (str "Stuck at " (:name level) ", "
+                                    "left " (:empty level) " empty blocks, "
+                                    "path: " (:path level))))))))))
 
 (defn show-boosters [{:keys [boosters] :as level}]
   (let [level' (reduce (fn [level [[x y] kind]]

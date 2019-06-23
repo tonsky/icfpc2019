@@ -88,8 +88,7 @@
   (if-some [booster (get boosters [(:x level) (:y level)])]
     (-> level
       (update :boosters dissoc [(:x level) (:y level)])
-      (update :collected-boosters update booster (fnil inc 0))
-      (update :score + 100))
+      (update :collected-boosters update booster (fnil inc 0)))
     level))
 
 (defn wear-off-boosters [level]
@@ -447,7 +446,6 @@
                     :layout             [[0 0] [1 0] [1 1] [1 -1]]
                     :collected-boosters {}
                     :active-boosters    {}
-                    :score              0
                     :path               ""}
         level (reduce (fn [level [x y]]
                         (set-level level x y OBSTACLE))
@@ -548,7 +546,6 @@
                     :layout             [[0 0] [1 0] [1 1] [1 -1]]
                     :collected-boosters {}
                     :active-boosters    {}
-                    :score              0
                     :path               ""}
         level (fill-level init-level corners obstacles)
         level (assoc level

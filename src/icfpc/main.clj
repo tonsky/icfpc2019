@@ -43,7 +43,7 @@
     (catch Exception e
       (if (:throw? opts true)
         (throw e)
-        (println (type e) (.getMessage e))))))
+        (println "Failed" name "with" (type e) ":" (.getMessage e))))))
 
 (defn skip-till [n xs]
   (if (some? n) (drop n xs) xs))
