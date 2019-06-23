@@ -66,6 +66,9 @@
 (defn get-zone [level x y]
   (nth (:zones-grid level) (coord->idx level x y)))
 
+(defn zone-area [level zone]
+  (get (:zones-area level) zone))
+
 (defn seek [pred coll]
   (some #(if (pred %) %) coll))
 

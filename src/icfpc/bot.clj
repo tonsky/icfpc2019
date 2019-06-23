@@ -204,7 +204,7 @@
             (->Point x' y')))
         (->Point x' y')))))
 
-(defn rate [[x y] {:keys [boosters weights layout width height] :as level}]
+(defn rate [[x y] {:keys [boosters weights layout width height current-zone] :as level}]
   (cond
     ;; TODO check current zone
     (boosters [x y]) 100
@@ -218,7 +218,8 @@
                 (or
                   (= [0 0] [dx dy])
                   (valid-hand? x y dx dy level))
-                (= EMPTY (get-level level x' y')))
+                (= EMPTY (get-level level x' y'))
+                (= current-zone (get-zone level x y)))
             (+ acc (max 1 (aget weights (coord->idx level x' y'))))
             acc)))
       0
@@ -321,9 +322,9 @@
           (if zones?
             (if colored?
               (print "\033[103m" (zone-char (get-zone level x y)) "\033[0m")
-              (print (zone-char (get-zone level x y))))
+              (print (get-zone level x y)))
             (if colored?
-              (print "\033[103m.\033[0m")
+              (print (str "\033[103m" (zone-char (get-zone level x y)) "\033[0m"))
               (print "•")))
 
           (= v WRAPPED)
@@ -382,7 +383,6 @@
                 (and debug? (>= (- (System/currentTimeMillis) @*last-frame) 200)))
           (print-step level delay)
           (reset! *last-frame (System/currentTimeMillis)))
-
         (cond+
           (= 0 (:empty level))
           (do
@@ -390,6 +390,10 @@
             {:path  (:path level)
              :score (path-score (:path level))
              :time  (- (System/currentTimeMillis) t0)})
+
+          (= 0 (zone-area level (:current-zone level)))
+          (let [next-zone (closest-zone level (:x level) (:y level))]
+            (recur (assoc level :current-zone next-zone)))
 
           :when-some [level' (apply-boosters level)]
           (recur level')
@@ -411,7 +415,7 @@
 
           :else
           (do
-            (print-step level nil)
+;            (print-step level nil)
             (throw (Exception. (str "Stuck at " (:name level) ", left " (:empty level) " empty blocks, score: " (:score level) ", path: " (:path level))))))))))
 
 (defn show-boosters [{:keys [boosters] :as level}]

@@ -538,9 +538,11 @@
                           (group-by first (for [x (range width)
                                                 y (range height)
                                                 :when (= EMPTY (get-level level x y))]
-                                            [(get-level zones-map x y) [x y]]))))]
-    (assoc level :zones-grid (:grid zones-map)
-                 :zones-area zones-area)))
+                                            [(get-level zones-map x y) [x y]]))))
+        level (assoc level :zones-grid (:grid zones-map)
+                           :zones-area zones-area)
+        level (assoc level :current-zone (get-zone level (:x level) (:y level)))]
+    level))
 
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
@@ -576,8 +578,8 @@
                        (neighbours level p))
             finded (first (keep (fn [[x y :as n]]
                                   (let [zone-id (get-zone level x y)
-                                        area (get-in level [:zones-area zone-id])]
-                                    (when (pos? area)
+                                        area (zone-area level zone-id)]
+                                    (when (and (some? area) (pos? area))
                                       zone-id)))
                                 ns))]
         (if (some? finded)
@@ -586,20 +588,16 @@
       nil)))
 
 (comment
-  (def lvl (load-level "prob-001.desc"))
+  (def lvl (load-level "prob-002.desc"))
   (apply max (vals (:zones-area lvl)))
   (apply min (vals (:zones-area lvl)))
   (get-level lvl 5 5)
   (map (get-level lvl (first %) (second %))
        (neighbours lvl [5 5]))
   (get-level lvl 11 0)
+  (:zones-grid lvl)
 
   (closest-zone (assoc-in lvl [:zones-area 1] 0) 16 0)
-
-  (icfpc.bot/print-level lvl :max-w 10000 :max-h 10000 :colored? false  :zones? true)
-  *e
-
-  (+ 2 2)
 
   (count (points-by-value lvl' EMPTY))
 

@@ -49,7 +49,8 @@
            "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln))))
       (:score sln))
     (catch Exception e
-      (println (.getMessage e)))))
+      (println (type e) (.getMessage e))
+      (throw e))))
 
 (defn skip-till [n xs]
   (if (some? n) (drop n xs) xs))
