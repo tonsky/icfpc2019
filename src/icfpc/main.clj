@@ -114,7 +114,7 @@
     (:out result)))
 
 (defn mine-block [block]
-  (let [block (Integer/parseInt (clojure.string/trim block))
+  (let [block (Integer/parseInt (str/trim block))
         puzzle (run-lambda "getblockinfo" (str block) "puzzle")
         task (run-lambda "getblockinfo" (str block) "task")
         puzzle-name (format "puzzle-%03d.cond" block)
@@ -140,14 +140,14 @@
     (shutdown-agents)))
 
 (defn mine []
-  (let [block (Integer/parseInt (clojure.string/trim (run-lambda "getmininginfo" "block")))
+  (let [block (Integer/parseInt (str/trim (run-lambda "getmininginfo" "block")))
         puzzle (run-lambda "getmininginfo" "puzzle")
         task (run-lambda "getmininginfo" "task")
         puzzle-name (format "puzzle-%03d.cond" block)
         task-name (format "task-%03d.desc" block)
         solution-name (format "solution-%03d.sol" block)
         generated-name (format "generated-%03d.desc" block)]
-    (println (format "Round: %03d" block))
+    (println (format "Round: %03d balance %s" block (str/trim (run-lambda "getbalance"))))
     (if (.exists (io/file "puzzles" generated-name))
       (println "Already solved, nothing to do")
       (do
