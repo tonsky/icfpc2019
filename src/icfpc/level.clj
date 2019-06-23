@@ -140,7 +140,7 @@
 (defn bounds [points]
   (let [xs (map first points)
         ys (map second points)]
-    [(inc (apply max xs)) (inc (apply max ys))]))
+    [(apply max xs) (apply max ys)]))
 
 (defn direction [[from-x from-y] [to-x to-y]]
   (cond
@@ -480,7 +480,7 @@
         level (place-bot level)]
     level))
 
-(defn shuffle
+(defn shuffle*
   "Return a random permutation of coll"
   {:added "1.2"
    :static true}
@@ -496,7 +496,7 @@
         height (:height level)
         empty-points (points-by-value level EMPTY)
         zones-count (int (/ (count empty-points) average-area))
-        centers (map-indexed vector (take zones-count (shuffle empty-points)))
+        centers (map-indexed vector (take zones-count (shuffle* empty-points)))
         zones-map {:width width
                    :height height
                    :grid (vec (repeat (* width height) 0))}

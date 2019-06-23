@@ -1,6 +1,7 @@
 (ns icfpc.main
   (:require
    [icfpc.bot :as bot]
+   [icfpc.core :as core]
    [icfpc.level :as level]
    [clojure.string :as str]
    [clojure.java.io :as io]
@@ -18,13 +19,13 @@
 
 (defn compare-solutions [name score]
   (->> (file-seq (io/file "."))
-    (filter #(str/starts-with? (.getName ^File %) "day"))
+    (filter  #(str/starts-with? (.getName ^File %) "day"))
     (sort-by #(.getName ^File %))
-    (map #(io/file % (str name ".sol")))
-    (filter #(.exists ^File %))
-    (map #(bot/path-score (slurp %)))
+    (map     #(io/file % (str name ".sol")))
+    (filter  #(.exists ^File %))
+    (map     #(core/path-score (slurp %)))
     (distinct)
-    (map #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
+    (map     #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
 (defn left []
   (- (->> (file-seq (io/file "problems"))
@@ -56,7 +57,12 @@
 (defn take-till [to xs]
   (if (some? to) (take to xs) xs))
 
-(defn -main [& [from till threads]]
+(defn clear []
+  (doseq [^File file (file-seq (io/file "problems"))
+          :when (str/ends-with? (.getName file) ".sol")]
+    (.delete file)))
+
+(defn main [& [from till threads]]
   (let [from  (cond-> from (string? from) (Integer/parseInt))
         till  (cond-> till (string? till) (Integer/parseInt))
         names (->> (file-seq (io/file "problems"))
@@ -81,8 +87,15 @@
       (CompletableFuture/allOf)
       (.join))
     (log "DONE in" (- (System/currentTimeMillis) t0) " ms")
-    (.shutdown executor)
-    (shutdown-agents)))
+    (.shutdown executor)))
+
+(defn -main [& [from till threads]]
+  (main from till threads)
+  (shutdown-agents))
+
+(defn clean-main [& [from till threads]]
+  (clear)
+  (-main from till threads))
 
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))
@@ -101,7 +114,7 @@
   (->> (file-seq (io/file path))
        (filter #(str/ends-with? (.getName ^File %) ".sol"))
        (map slurp)
-       (map bot/path-score)
+       (map core/path-score)
        (reduce + 0)))
 
 (defn mine-coins [& [block excluded puzzle task]]
