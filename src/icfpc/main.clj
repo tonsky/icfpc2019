@@ -121,24 +121,22 @@
         task-name (format "task-%03d.desc" block)
         solution-name (format "solution-%03d.sol" block)
         generated-name (format "generated-%03d.desc" block)]
-    (prn (format "Round: %03d" block))
+    (println (format "Round: %03d" block))
     (spit (str "./puzzles/" puzzle-name) puzzle)
     (spit (str "./puzzles/" task-name) task)
-    (prn "Generate level...")
+    (println "Generating level...")
     (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
           level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
-      (if (icfpc.parser/validate-puzzle puzzle level)
-        (do
-          (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
-          (prn "Level generated...")
-          (prn "Trying to solve level...")
-          (let [level (level/load-level (str "../puzzles/" task-name))
-                sln   (bot/solve level (merge
-                                        {:debug? false
-                                         :lookahead? false #_(<= (:width level) 200)}))]
-            (prn "Solved " (dissoc sln :path))
-            (spit (str "./puzzles/" solution-name) (:path sln))))
-        (prn "Level generation failed.")))
+      (icfpc.parser/validate-puzzle puzzle level)
+      (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
+      (println "Level generated" generated-name)
+      (println "Trying to solve level...")
+      (let [level (level/load-level (str "../puzzles/" task-name))
+            sln   (bot/solve level (merge
+                                    {:debug? false
+                                     :lookahead? false #_(<= (:width level) 200)}))]
+        (println "Solved" solution-name (dissoc sln :path))
+        (spit (str "./puzzles/" solution-name) (:path sln))))
     (shutdown-agents)))
 
 (defn mine []
@@ -149,25 +147,23 @@
         task-name (format "task-%03d.desc" block)
         solution-name (format "solution-%03d.sol" block)
         generated-name (format "generated-%03d.desc" block)]
-    (prn (format "Round: %03d" block))
+    (println (format "Round: %03d" block))
     (spit (str "./puzzles/" puzzle-name) puzzle)
     (spit (str "./puzzles/" task-name) task)
-    (prn "Generate level...")
+    (println "Generating level...")
     (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
           level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
-      (if (icfpc.parser/validate-puzzle puzzle level)
-        (do
-          (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
-          (prn "Level generated...")
-          (prn "Trying to solve level...")
-          (let [level (level/load-level (str "../puzzles/" task-name))
-                sln   (bot/solve level (merge
-                                        {:debug? false
-                                         :lookahead? false #_(<= (:width level) 200)}))]
-            (prn "Solved " (dissoc sln :path))
-            (spit (str "./puzzles/" solution-name) (:path sln)))
-          (prn (run-lambda "submit" (str block) (str "../../puzzles/" solution-name) (str "../../puzzles/" generated-name))))
-        (prn "Level generation failed.")))
+      (icfpc.parser/validate-puzzle puzzle level)
+      (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
+      (println "Level generated" generated-name)
+      (println "Trying to solve level...")
+      (let [level (level/load-level (str "../puzzles/" task-name))
+            sln   (bot/solve level (merge
+                                    {:debug? false
+                                     :lookahead? false #_(<= (:width level) 200)}))]
+        (println "Solved" solution-name (dissoc sln :path))
+        (spit (str "./puzzles/" solution-name) (:path sln)))
+      (println (run-lambda "submit" (str block) (str "../../puzzles/" solution-name) (str "../../puzzles/" generated-name))))
     (shutdown-agents)))
 
 
