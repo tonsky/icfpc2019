@@ -89,10 +89,12 @@
   (solve name))
 
 (comment
-  (icfpc.main/solve "prob-010")
+  (icfpc.main/solve "prob-002" {:debug? true})
   (icfpc.main/print-solve "prob-002")
-  (icfpc.bot/solve (icfpc.level/load-level "prob-010.desc") {:delay 100})
+  (icfpc.bot/solve (icfpc.level/load-level "prob-002.desc") {:delay 100})
   (icfpc.main/score-solutions "problems")
+  *e
+  (+ 2 2)
 )
 
 (defn score-solutions [path]

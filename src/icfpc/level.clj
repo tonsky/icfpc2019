@@ -120,6 +120,7 @@
             booster (get boosters [x y])]
         (cond-> level
           (= EMPTY before) (-> (set-level x y WRAPPED)
+                               (update-in [:zones-area (get-zone level x y)] dec)
                                (update :empty dec))
           true             (update :score + (score-point' level x y)))))
     (-> level collect-booster drill)
@@ -261,27 +262,6 @@
                 (= (get-level level x' y') OBSTACLE))
             1
             0))))))
-
-(defn load-level [name]
-  (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
-        [width height] (bounds corners)
-        init-level {:name               name
-                    :width              width
-                    :height             height
-                    :grid               (vec (repeat (* width height) OBSTACLE))
-                    :boosters           (build-boosters boosters)
-                    :spawns             (build-spawns boosters)
-                    :x                  (first bot-point)
-                    :y                  (second bot-point)
-                    :layout             [[0 0] [1 0] [1 1] [1 -1]]
-                    :collected-boosters {}
-                    :active-boosters    {}
-                    :score              0
-                    :path               ""}
-        level (fill-level init-level corners obstacles)]
-    (assoc level
-      :weights (weights level)
-      :empty   (count (filter #(= EMPTY %) (:grid level))))))
 
 (defn neighbours [level [x y]]
   (filter #(valid-point? level %) [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]]))
@@ -511,6 +491,7 @@
 
 (defn generate-zones [level]
   (let [average-area 100
+        max-iteration-count 10000
         width (:width level)
         height (:height level)
         empty-points (points-by-value level EMPTY)
@@ -541,18 +522,49 @@
                                                         {:zm zm :end? end?}))
                                                     {:zm zones :end? true}
                                                     empty-points)]
-                      (if (and (< iteration 1000) (not end?))
+                      (if (and (< iteration max-iteration-count) (not end?))
                         (recur zm (inc iteration))
                         (do
-                          (when (= iteration 10000)
+                          (when (= iteration max-iteration-count)
                             (prn "Cant generate zones"))
-                          zm))))]
-    (assoc level :zones-map zones-map)))
+                          zm))))
+        zones-area (into {}
+                         (map
+                          (fn [[z points]]
+                            [z (count points)])
+                          (group-by first (for [x (range width)
+                                                y (range height)
+                                                :when (= EMPTY (get-level level x y))]
+                                            [(get-level zones-map x y) [x y]]))))]
+    (assoc level :zones-grid (:grid zones-map)
+                 :zones-area zones-area)))
+
+(defn load-level [name]
+  (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
+        [width height] (bounds corners)
+        init-level {:name               name
+                    :width              width
+                    :height             height
+                    :grid               (vec (repeat (* width height) OBSTACLE))
+                    :boosters           (build-boosters boosters)
+                    :spawns             (build-spawns boosters)
+                    :x                  (first bot-point)
+                    :y                  (second bot-point)
+                    :layout             [[0 0] [1 0] [1 1] [1 -1]]
+                    :collected-boosters {}
+                    :active-boosters    {}
+                    :score              0
+                    :path               ""}
+        level (fill-level init-level corners obstacles)
+        level (assoc level
+                     :weights (weights level)
+                     :empty   (count (filter #(= EMPTY %) (:grid level))))]
+    (generate-zones level)))
 
 (comment
-  (def proto-lvl (load-level "prob-150.desc"))
-  (def lvl (generate-zones proto-lvl))
-  (count (:zones-map lvl))
+  (def lvl (load-level "prob-150.desc"))
+  (apply max (vals (:zones-area lvl)))
+  (apply min (vals (:zones-area lvl)))
 
   (icfpc.bot/print-level lvl :max-w 10000 :max-h 10000 :colored? false  :zones? true)
   *e

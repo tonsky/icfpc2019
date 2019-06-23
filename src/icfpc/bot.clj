@@ -271,8 +271,8 @@
           (= v EMPTY)
           (if zones?
             (if colored?
-              (print "\033[103m" (zone-char (get-level (:zones-map level) x y)) "\033[0m")
-              (print (zone-char (get-level (:zones-map level) x y))))
+              (print "\033[103m" (zone-char (get-zone level x y)) "\033[0m")
+              (print (zone-char (get-zone level x y))))
             (if colored?
               (print "\033[103m.\033[0m")
               (print "•")))
@@ -314,6 +314,7 @@
               (println "Hands:" (dec (count (:layout level))) "layout:" (:layout level))
               (println "Beakons:" (:beakons level))
               (println "Score:" (path-score (:path level')) #_#_"via" (:path level'))
+              (println "Areas:" (:zones-area level))
               (when (some? delay)
                 (Thread/sleep delay))
               (when-not (Thread/interrupted)
