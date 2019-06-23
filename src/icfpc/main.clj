@@ -25,6 +25,7 @@
     (filter  #(.exists ^File %))
     (map     #(core/path-score (slurp %)))
     (distinct)
+    (take-last 2)
     (map     #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
 (defn left []
