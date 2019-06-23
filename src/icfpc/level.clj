@@ -168,14 +168,16 @@
     (java.util.Collections/shuffle al (java.util.Random. 42))
     (clojure.lang.RT/vector (.toArray al))))
 
-(defn generate-zones [level]
-  (let [average-area 70
-        max-zones-count 10
-        width (:width level)
+(defn generate-zones [level zones-count]
+  (let [width (:width level)
         height (:height level)
         max-iteration-count (* width height)
         empty-points (points-by-value level EMPTY)
-        zones-count (min max-zones-count (inc (int (/ (count empty-points) average-area))))
+
+;        average-area 70
+;        max-zones-count 1000
+;        zones-count (min max-zones-count (inc (int (/ (count empty-points) average-area))))
+
         centers (map-indexed (fn [idx z] [(inc idx) z]) (take zones-count (shuffle* empty-points)))
         zones-map {:width width
                    :height height
@@ -246,8 +248,9 @@
         level (fill-level init-level corners obstacles)
         level (assoc level
                      :weights (weights level)
-                     :empty   (count (filter #(= EMPTY %) (:grid level))))]
-    (generate-zones level)))
+                     :empty   (count (filter #(= EMPTY %) (:grid level))))
+        clones-count (inc (count (filter #(= CLONE (val %)) (:boosters level))))]
+    (generate-zones level clones-count)))
 
 (comment
   (def lvl (load-level "prob-002.desc"))
