@@ -214,7 +214,7 @@
     ;   0 layout)
     :else 0))
 
-(defn explore [{:keys [x y active-boosters] :as level}]
+(defn explore [{:keys [x y active-boosters beakons] :as level}]
   (let [paths (HashMap. {(->Point x y) []})
         queue (ArrayDeque. [[[] (->Point x y) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
     (loop [max-len        *explore-depth*
@@ -223,19 +223,27 @@
       (if-some [[path [x y :as pos] fast drill :as move] (.poll queue)]
         (if (< (count path) max-len)
           ;; still exploring inside max-len
-          (let [rate  (rate pos level)
-                moves (for [[move dx dy] [[LEFT -1 0] [RIGHT 1 0] [UP 0 1] [DOWN 0 -1]]
-                            :let [pos' (step x y dx dy (pos? fast) (pos? drill) level)]
-                            :when (some? pos')
-                            :when (not (.containsKey paths pos'))]
-                        [(conj path move) pos' (spend fast) (spend drill)])]
-            ;; TODO wait off fast
-            (doseq [[path' pos' & _ :as move] moves]
+          (let [rate  (rate pos level)]
+            ;; moves
+            (doseq [[move dx dy] [[LEFT -1 0] [RIGHT 1 0] [UP 0 1] [DOWN 0 -1]]
+                    :let [pos' (step x y dx dy (pos? fast) (pos? drill) level)]
+                    :when (some? pos')
+                    :when (not (.containsKey paths pos'))
+                    :let [path' (conj path move)]]
               (.put paths pos' path')
-              (.add queue move))
+              (.add queue [path' pos' (spend fast) (spend drill)]))
+            ;; jumps
+            (doseq [[move pos'] [[:jump0 (nth (:beakons level) 0 nil)]
+                                 [:jump1 (nth (:beakons level) 1 nil)]
+                                 [:jump2 (nth (:beakons level) 2 nil)]]
+                    :when (some? pos')
+                    :when (not (.containsKey paths pos'))
+                    :let [path' (conj path move)]]
+              (.put paths pos' path')
+              (.add queue [path' pos' (spend fast) (spend drill)]))
             (if (> rate best-path-rate)
               (recur max-len path rate)
-              (recur max-len best-path best-path-rate)))            
+              (recur max-len best-path best-path-rate)))
           ;; only paths with len > max-len left, maybe already have good solution?
           (if (nil? best-path)
             (do
@@ -262,9 +270,10 @@
     \0
     (char (+ (dec (int \a)) n))))
 
-(defn print-level [{:keys [width height name boosters x y spawns] :as level} 
+(defn print-level [{:keys [width height name boosters x y beakons spawns] :as level} 
                    & {:keys [colored? max-w max-h zones?] :or {max-w 50 max-h 30 colored? true zones? false}}]
   (println name)
+  (let [beakons (set beakons)]
   (doseq [y (range (min (dec height) (+ y max-h)) (dec (max 0 (- y max-h))) -1)]
     (doseq [x (range (max 0 (- x max-w)) (min width (+ x max-w)))
             :let [v (get-level level x y)
@@ -285,6 +294,11 @@
             (print (str "\033[97;44mX\033[0m"))
             (print "X"))
 
+          (contains? beakons [x y])
+          (if colored?
+            (print (str "\033[97;44m@\033[0m"))
+            (print "@"))
+
           (= v EMPTY)
           (if zones?
             (if colored?
@@ -304,7 +318,7 @@
 
           :else
           (print (get-level level x y))))
-    (println))
+    (println)))
   (println))
 
 
@@ -325,7 +339,7 @@
     (binding [*disabled*      disabled
               *explore-depth* explore-depth]
       (loop [level (mark-wrapped level)]
-        (when (Thread/interrupted)
+        (when (.isInterrupted (Thread/currentThread))
           (throw (InterruptedException.)))
 
         (when (or (some? delay)
