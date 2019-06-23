@@ -10,7 +10,7 @@
 
 (def ^:dynamic *disabled* #{})
 (def ^:dynamic *explore-depth* 10)
-(def ^:dynamic *zones?* true)
+(def ^:dynamic *zones?* false)
 
 (s/def :level/width nat-int?)
 (s/def :level/height nat-int?)
