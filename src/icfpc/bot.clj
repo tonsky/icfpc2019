@@ -271,7 +271,7 @@
     (char (+ (dec (int \a)) n))))
 
 (defn print-level [{:keys [width height name boosters x y beakons spawns] :as level} 
-                   & {:keys [colored? max-w max-h zones?] :or {max-w 50 max-h 30 colored? true zones? false}}]
+                   & {:keys [colored? max-w max-h zones?] :or {max-w 50 max-h 20 colored? true zones? false}}]
   (println name)
   (let [beakons (set beakons)]
   (doseq [y (range (min (dec height) (+ y max-h)) (dec (max 0 (- y max-h))) -1)]
@@ -363,8 +363,10 @@
                 (when-not (identical? acc level)
                   (when (some? delay)
                     (print-step acc delay)))
-                (if-some [acc' (act acc action)]
-                  (wear-off-boosters acc')
+                (if-some [acc' (some-> acc (act action) (wear-off-boosters))]
+                  (if (> (:score acc') (:score level))
+                    (reduced acc')
+                    acc')
                   (reduced acc)))
               level
               path))

@@ -93,6 +93,10 @@
   (main from till threads)
   (shutdown-agents))
 
+(defn clean-main [& [from till threads]]
+  (clear)
+  (-main from till threads))
+
 (defn print-solve [name]
   (bot/print-level (level/load-level (str name ".desc")))
   (solve name))
