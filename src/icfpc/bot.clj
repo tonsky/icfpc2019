@@ -207,26 +207,32 @@
 (defn rate [[x y] {:keys [boosters weights layout width height] :as level}]
   (cond
     (boosters [x y]) 100
+    ; (= EMPTY (get-level level x y)) (max 1 (aget weights (coord->idx level x y)))
     (= EMPTY (get-level level x y)) 1
-    ; (= EMPTY (get-level level x y)) ;(max 1 (aget weights (coord->idx level x y)))
     ; :else
     ; (reduce
-    ;   (fn [acc [x y]]
-    ;     (if (= EMPTY (get-level level x y)) (+ acc 1) acc))
+    ;   (fn [acc [dx dy]]
+    ;     (if (and
+    ;           (or
+    ;             (= [0 0] [dx dy])
+    ;             (valid-hand? x y dx dy level))
+    ;           (= EMPTY (get-level level (+ x dx) (+ y dy))))
+    ;       (+ acc 1)
+    ;       acc))
     ;   0
-    ;   (bot-covering (assoc level :x x :y y)))
+    ;   layout)
     :else 0))
 
-(defn explore [{:keys [x y active-boosters beakons] :as level}]
-  (let [paths (HashMap. {(->Point x y) []})
-        queue (ArrayDeque. [[[] (->Point x y) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
-    (loop [max-len        *explore-depth*
-           best-path      nil
-           best-path-rate 0]
+(defn -explore [{ox :x oy :y :keys [active-boosters beakons] :as level}]
+  (let [paths (HashMap. {(->Point ox oy) []})
+        queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
+    (loop [max-len   *explore-depth*
+           best-path nil
+           best-rate 0]
       (if-some [[path [x y :as pos] fast drill :as move] (.poll queue)]
         (if (< (count path) max-len)
           ;; still exploring inside max-len
-          (let [rate (rate pos level)]
+          (do
             ;; moves
             (doseq [[move dx dy] [[LEFT -1 0] [RIGHT 1 0] [UP 0 1] [DOWN 0 -1]]
                     :let [pos' (step x y dx dy (pos? fast) (pos? drill) level)]
@@ -244,9 +250,16 @@
                     :let [path' (conj path move)]]
               (.put paths pos' path')
               (.add queue [path' pos' (spend fast) (spend drill)]))
-            (if (> rate best-path-rate)
-              (recur max-len path rate)
-              (recur max-len best-path best-path-rate)))
+            ; (prn "path" path "best-path" best-path)
+            (cond+
+              (empty? path)     (recur max-len best-path best-rate)
+              :let [rate (/ (rate pos level) (count path))]
+              (zero? rate)       (recur max-len best-path best-rate)
+              (zero? best-rate)  (recur max-len path rate)
+              (> rate best-rate) (recur max-len path rate)
+              (< rate best-rate) (recur max-len best-path best-rate)
+              (< (count path) (count best-path)) (recur max-len path rate)
+              :else (recur max-len best-path best-rate)))
           ;; only paths with len > max-len left, maybe already have good solution?
           (if (nil? best-path)
             (do
