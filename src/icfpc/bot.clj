@@ -157,21 +157,30 @@
         (mark-wrapped)
         (update :path str JUMP "(" bx "," by ")")))))
 
+(defn reduplicate [{:keys [x y spawns collected-boosters] :as level}]
+  (when (and
+          (pos? (collected-boosters CLONE 0))
+          (spawns [x y]))
+    (-> level
+      (update :path str REPLICATE)
+      (update :bots conj {:x x :y y})
+      (spend :collected-boosters CLONE))))
+
 (defn act [level action]
   (condp = action
     UP          (move level 0 1 UP)
     DOWN        (move level 0 -1 DOWN)
     LEFT        (move level -1 0 LEFT)
     RIGHT       (move level 1 0 RIGHT)
-    ROTATE_CW   (rotate-cw level)
-    ROTATE_CCW  (rotate-ccw level)
+    ; ROTATE_CW   (rotate-cw level)
+    ; ROTATE_CCW  (rotate-ccw level)
     :jump0      (jump level 0)
     :jump1      (jump level 1)
     :jump2      (jump level 2)
-    EXTRA_HAND  (add-extra-hand level)
-    FAST_WHEELS (add-fast-wheels level) 
-    DRILL       (add-drill level)
-    SET_BEAKON  (set-beakon level)
+    ; EXTRA_HAND  (add-extra-hand level)
+    ; FAST_WHEELS (add-fast-wheels level) 
+    ; DRILL       (add-drill level)
+    ; SET_BEAKON  (set-beakon level)
     WAIT        (update level :path str WAIT)))
 
 (def counter
@@ -181,15 +190,6 @@
    DOWN UP
    ROTATE_CW ROTATE_CCW
    ROTATE_CCW ROTATE_CW})
-
-(defn apply-boosters [level]
-  (some->
-    (or
-      (add-extra-hand level)
-      (add-fast-wheels level) 
-      (add-drill level)
-      (set-beakon level))
-    (wear-off-boosters)))
 
 (defn can-step? [x y drill? {:keys [width height] :as level}]
   (and (< -1 x width) (< -1 y height) (or drill? (not= OBSTACLE (get-level level x y)))))
@@ -226,7 +226,7 @@
       layout)
     :else 0))
 
-(defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level} rate]
+(defn explore [{ox :x oy :y :keys [active-boosters beakons] :as level} rate-fn]
   (let [paths (HashMap. {(->Point ox oy) []})
         queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
     (loop [max-len   *explore-depth*
@@ -256,7 +256,7 @@
             ; (prn "path" path "best-path" best-path)
             (cond+
               (empty? path)      (recur max-len best-path best-rate)
-              :let [rate (/ (rate pos level) (count path))]
+              :let [rate (/ (rate-fn pos level) (count path))]
               (zero? rate)       (recur max-len best-path best-rate)
               (zero? best-rate)  (recur max-len path rate)
               (> rate best-rate) (recur max-len path rate)
@@ -276,14 +276,6 @@
     (when (pos? fast)
       (repeat fast WAIT))))
 
-(defn apply-path [level path]
-  (reduce
-    (fn [level action]
-      (if-some [level' (act level action)]
-        (wear-off-boosters level')
-        (reduced level)))
-    level path))
-
 (defn zone-char [n]
   (if (= n 0)
     \0
@@ -291,7 +283,7 @@
      (+ (dec (int \a))
         (mod n (- (int \z) (int \a)))))))
 
-(defn print-level [{:keys [width height name boosters x y beakons spawns] :as level} 
+(defn print-level [{:keys [width height name boosters x y beakons spawns bots] :as level} 
                    & {:keys [colored? max-w max-h zones?] :or {max-w 50 max-h 20 colored? true zones? false}}]
   (println name)
   (let [beakons (set beakons)]
@@ -300,7 +292,8 @@
             :let [v (get-level level x y)
                   booster (get boosters [x y])]]
         (cond
-          (and (= x (:x level)) (= y (:y level)))
+          (or (and (= x (:x level)) (= y (:y level)))
+            (some #(= [x y] [(:x %) (:y %)]) bots))
           (if colored?
             (print "\033[97;101m*\033[0m")
             (print "☺"))
@@ -354,23 +347,18 @@
   (when (some? delay)
     (Thread/sleep delay)))
 
-(defn collect-clones [level]
-  (if (contains? (into #{} (vals (:boosters level))) CLONE)
-    (let [level' (loop [level level]
-                   (let [path (explore level (fn [[x y] level]
-                                                  (if (= (get (:boosters level) [x y])
-                                                         CLONE)
-                                                    1
-                                                    0)))]
-                     (if (some? path)
-                       (recur (reduce act level path))
-                       level)))
-          path (explore level' (fn [[x y] level]
-                                 (if (contains? (:spawns level) [x y])
-                                   1
-                                   0)))]
-      (reduce act level' path))
-    level))
+(defn collect-clone [{:keys [boosters collected-boosters] :as level}]
+  (when (and
+          (= 0 (collected-boosters CLONE 0))
+          (some (fn [[_ b]] (= b CLONE)) boosters))
+    (explore level (fn [[x y] level]
+                     (if (= (boosters [x y]) CLONE) 1 0)))))
+
+(defn goto-spawn [{:keys [x y spawns collected-boosters] :as level}]
+  (when (pos? (collected-boosters CLONE 0))
+    (when-not (spawns [x y])
+      (explore level (fn [[x y] level]
+                       (if (spawns [x y]) 1 0))))))
 
 (defn solve [level & [{:keys [debug? delay disabled explore-depth]
                        :or {debug? true, disabled #{}, explore-depth 10}}]]
@@ -378,7 +366,7 @@
         *last-frame (atom 0)]
     (binding [*disabled*      disabled
               *explore-depth* explore-depth]
-      (loop [level (collect-clones (mark-wrapped level))]
+      (loop [level (mark-wrapped level)]
         (when (.isInterrupted (Thread/currentThread))
           (throw (InterruptedException.)))
 
@@ -398,10 +386,19 @@
           (let [next-zone (closest-zone level (:x level) (:y level))]
             (recur (assoc level :current-zone next-zone)))
 
-          :when-some [level' (apply-boosters level)]
-          (recur level')
+          :when-some [level' (or
+                               (reduplicate level)
+                               (add-extra-hand level)
+                               (add-fast-wheels level) 
+                               (add-drill level)
+                               (set-beakon level))]
+          (recur (wear-off-boosters level'))
 
-          :when-some [path (or (explore level rate) (wait-off-fast level))]
+          :when-some [path (or 
+                             (goto-spawn level)
+                             (collect-clone level)
+                             (explore level rate)
+                             (wait-off-fast level))]
           (recur
             (reduce
               (fn [acc action]
@@ -418,7 +415,7 @@
 
           :else
           (do
-;            (print-step level nil)
+            (print-step level nil)
             (throw (Exception. (str "Stuck at " (:name level) ", left " (:empty level) " empty blocks, score: " (:score level) ", path: " (:path level))))))))))
 
 (defn show-boosters [{:keys [boosters] :as level}]

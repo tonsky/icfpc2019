@@ -38,6 +38,7 @@
 (def ROTATE_CCW \Q)
 (def SET_BEAKON \R)
 (def JUMP       \T)
+(def REPLICATE  \C)
 
 (defn spend
   ([v] (cond (nil? v) nil (> v 1) (dec v) :else 0))
@@ -51,6 +52,8 @@
 (defn coord->idx [level x y] (+ x (* y (:width level))))
 
 (defn get-level
+  ([level]
+   (nth (:grid level) (coord->idx level (:x level) (:y level))))
   ([level x y]
    (nth (:grid level) (coord->idx level x y)))
   ([level x y default]
