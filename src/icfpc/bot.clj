@@ -168,20 +168,14 @@
 
 (defn act [level action]
   (condp = action
-    UP          (move level 0 1 UP)
-    DOWN        (move level 0 -1 DOWN)
-    LEFT        (move level -1 0 LEFT)
-    RIGHT       (move level 1 0 RIGHT)
-    ; ROTATE_CW   (rotate-cw level)
-    ; ROTATE_CCW  (rotate-ccw level)
-    :jump0      (jump level 0)
-    :jump1      (jump level 1)
-    :jump2      (jump level 2)
-    ; EXTRA_HAND  (add-extra-hand level)
-    ; FAST_WHEELS (add-fast-wheels level) 
-    ; DRILL       (add-drill level)
-    ; SET_BEAKON  (set-beakon level)
-    WAIT        (update level :path str WAIT)))
+    UP     (move level 0 1 UP)
+    DOWN   (move level 0 -1 DOWN)
+    LEFT   (move level -1 0 LEFT)
+    RIGHT  (move level 1 0 RIGHT)
+    :jump0 (jump level 0)
+    :jump1 (jump level 1)
+    :jump2 (jump level 2)
+    WAIT   (update level :path str WAIT)))
 
 (def counter
   {LEFT RIGHT
@@ -206,8 +200,8 @@
 
 (defn rate [[x y] {:keys [boosters weights layout width height current-zone] :as level}]
   (cond
-    ;; TODO check current zone
-    (boosters [x y]) 100
+    (boosters [x y])
+    (if (= current-zone (get-zone level x y)) 100 0)
     ; (= EMPTY (get-level level x y)) (max 1 (aget weights (coord->idx level x y)))
     ; (= EMPTY (get-level level x y)) 1
     :else
@@ -231,6 +225,7 @@
         queue (ArrayDeque. [[[] (->Point ox oy) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
     (loop [max-len   *explore-depth*
            best-path nil
+           best-pos  nil
            best-rate 0]
       (if-some [[path [x y :as pos] fast drill :as move] (.poll queue)]
         (if (< (count path) max-len)
@@ -253,28 +248,27 @@
                     :let [path' (conj path move)]]
               (.put paths pos' path')
               (.add queue [path' pos' (spend fast) (spend drill)]))
-            ; (prn "path" path "best-path" best-path)
             (cond+
-              (empty? path)      (recur max-len best-path best-rate)
+              (empty? path)      (recur max-len best-path best-pos best-rate)
               :let [rate (/ (rate-fn pos level) (count path))]
-              (zero? rate)       (recur max-len best-path best-rate)
-              (zero? best-rate)  (recur max-len path rate)
-              (> rate best-rate) (recur max-len path rate)
-              (< rate best-rate) (recur max-len best-path best-rate)
-              (< (count path) (count best-path)) (recur max-len path rate)
-              :else (recur max-len best-path best-rate)))
+              (zero? rate)       (recur max-len best-path best-pos best-rate)
+              (zero? best-rate)  (recur max-len path pos rate)
+              (> rate best-rate) (recur max-len path pos rate)
+              (< rate best-rate) (recur max-len best-path best-pos best-rate)
+              (< (count path) (count best-path)) (recur max-len path pos rate)
+              :else (recur max-len best-path best-pos best-rate)))
           ;; only paths with len > max-len left, maybe already have good solution?
           (if (nil? best-path)
             (do
               (.addFirst queue move)
-              (recur (+ max-len *explore-depth*) nil 0)) ;; not found anything, try expand
-            best-path))
-        best-path))))
+              (recur (+ max-len *explore-depth*) nil nil 0)) ;; not found anything, try expand
+            (when best-path [best-path best-pos])))
+        (when best-path [best-path best-pos])))))
 
-(defn wait-off-fast [{:keys [active-boosters] :as level}]
+(defn wait-off-fast [{:keys [active-boosters x y] :as level}]
   (let [fast (active-boosters FAST_WHEELS 0)]
     (when (pos? fast)
-      (repeat fast WAIT))))
+      [(repeat fast WAIT) [x y]])))
 
 (defn zone-char [n]
   (if (= n 0)
@@ -360,6 +354,19 @@
       (explore level (fn [[x y] level]
                        (if (spawns [x y]) 1 0))))))
 
+(defn choose-next-zone [level]
+  (when (= 0 (zone-area level (:current-zone level)))
+    (let [[path [x y]] (explore level
+                         (fn [[x y] level]
+                           (cond+
+                             (not= EMPTY (get-level level x y)) 0
+                             :let [zone (get-zone level x y)
+                                   area (zone-area level zone)]
+                             (pos? area) 1
+                             :else       0)))]
+      (-> level
+        (assoc :current-zone (get-zone level x y)))))) ;; TODO set path too
+
 (defn solve [level & [{:keys [debug? delay disabled explore-depth]
                        :or {debug? true, disabled #{}, explore-depth 10}}]]
   (let [t0 (System/currentTimeMillis)
@@ -382,9 +389,8 @@
              :score (path-score (:path level))
              :time  (- (System/currentTimeMillis) t0)})
 
-          (= 0 (zone-area level (:current-zone level)))
-          (let [next-zone (closest-zone level (:x level) (:y level))]
-            (recur (assoc level :current-zone next-zone)))
+          :when-some [level' (choose-next-zone level)]
+          (recur level')
 
           :when-some [level' (or
                                (reduplicate level)
@@ -394,11 +400,11 @@
                                (set-beakon level))]
           (recur (wear-off-boosters level'))
 
-          :when-some [path (or 
-                             (goto-spawn level)
-                             (collect-clone level)
-                             (explore level rate)
-                             (wait-off-fast level))]
+          :when-some [[path _] (or 
+                                 (goto-spawn level)
+                                 (collect-clone level)
+                                 (explore level rate)
+                                 (wait-off-fast level))]
           (recur
             (reduce
               (fn [acc action]
@@ -406,7 +412,7 @@
                   (when (some? delay)
                     (print-step acc delay)))
                 (if-some [acc' (some-> acc (act action) (wear-off-boosters))]
-                  (if (> (:score acc') (:score level))
+                  (if (> (:empty level) (:empty acc'))
                     (reduced acc')
                     acc')
                   (throw (Exception. (str "Wow path failed from" (:x level) (:y level) "path" path)))))
@@ -416,7 +422,7 @@
           :else
           (do
             (print-step level nil)
-            (throw (Exception. (str "Stuck at " (:name level) ", left " (:empty level) " empty blocks, score: " (:score level) ", path: " (:path level))))))))))
+            (throw (Exception. (str "Stuck at " (:name level) ", left " (:empty level) " empty blocks, path: " (:path level))))))))))
 
 (defn show-boosters [{:keys [boosters] :as level}]
   (let [level' (reduce (fn [level [[x y] kind]]

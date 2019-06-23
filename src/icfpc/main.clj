@@ -15,7 +15,7 @@
 
 (def log-agent (agent nil))
 
-(defn log [& msg] (send log-agent (fn [_] (apply println msg) _)))
+(defn log [& msg] (send log-agent (fn [_] (apply println (remove nil? msg)) _)))
 
 (defn compare-solutions [name score]
   (->> (file-seq (io/file "."))
@@ -28,29 +28,22 @@
     (take-last 2)
     (map     #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
-(defn left []
-  (- (->> (file-seq (io/file "problems"))
-          (filter #(str/ends-with? (.getName ^File %) ".desc"))
-          (count))
-     (->> (file-seq (io/file "problems"))
-          (filter #(str/ends-with? (.getName ^File %) ".sol"))
-          (count))))
-
-(defn solve [name & [opts]]
+(defn solve [name & [{:keys [*left t0 throw?] :or {throw? true} :as opts}]]
   (try
     (let [level (level/load-level (str name ".desc"))
-          sln   (bot/solve level (merge
-                                   {:debug? false
-                                    :lookahead? (<= (:width level) 200)}
-                                   opts))]
+          sln   (bot/solve level (merge {:debug? false} opts))
+          left  (some-> *left (swap! dec))]
       (spit (str "problems/" name ".sol") (:path sln))
       (log (when-some [t0 (:t0 opts)]
              (str (- (System/currentTimeMillis) t0) "ms"))
-           "Left" (left)
+           (when (some? left)
+             (str "Left " left))
            "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln))))
       (:score sln))
     (catch Exception e
-      (println (type e) (.getMessage e)))))
+      (if (:throw? opts true)
+        (throw e)
+        (println (type e) (.getMessage e))))))
 
 (defn skip-till [n xs]
   (if (some? n) (drop n xs) xs))
@@ -77,13 +70,14 @@
         t0       (System/currentTimeMillis)
         threads  (or (cond-> threads (string? threads) (Integer/parseInt))
                    (.. Runtime getRuntime availableProcessors))
-        executor (java.util.concurrent.Executors/newFixedThreadPool threads)]
+        executor (java.util.concurrent.Executors/newFixedThreadPool threads)
+        *left    (atom (count names))]
     (log "Running" threads "threads, solving" (count names) "tasks")
     (->
       (into-array CompletableFuture
         (for [name names]
           (CompletableFuture/runAsync
-            ^Runnable (fn [] (solve name {:t0 t0}))
+            ^Runnable (fn [] (solve name {:t0 t0 :throw? false :*left *left}))
             executor)))
       (CompletableFuture/allOf)
       (.join))

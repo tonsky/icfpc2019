@@ -3,6 +3,10 @@
 (defn queue [& xs]
   (into clojure.lang.PersistentQueue/EMPTY xs))
 
+(defn spy [x]
+  (println x)
+  x)
+
 (defmacro cond+ [& clauses]
   (when clauses
     (let [[c1 c2 & cs] clauses]

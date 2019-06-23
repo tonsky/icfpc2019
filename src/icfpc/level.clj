@@ -97,17 +97,6 @@
     (spend :active-boosters FAST_WHEELS)
     (spend :active-boosters DRILL)))
 
-(defn score-point [level x y]
-  (get {EMPTY    1
-        OBSTACLE 0
-        WRAPPED  0}
-    (get-level level x y)))
-
-(defn score-point' [level x y]
-  (if (= EMPTY (get-level level x y))
-    (max 1 (aget (:weights level) (coord->idx level x y)))
-    0))
-
 (defn drill [{:keys [x y] :as level}]
   (if (and (is-booster-active level DRILL)
            (= OBSTACLE (get-level level x y)))
@@ -119,13 +108,13 @@
   [{:keys [boosters] :as level}]
   (reduce
     (fn [level [x y]]
-      (let [before  (get-level level x y)
-            booster (get boosters [x y])]
-        (cond-> level
-          (= EMPTY before) (-> (set-level x y WRAPPED)
-                               (update-in [:zones-area (get-zone level x y)] dec)
-                               (update :empty dec))
-          true             (update :score + (score-point' level x y)))))
+      (let [booster (get boosters [x y])]
+        (if (= EMPTY (get-level level x y))
+          (-> level
+            (set-level x y WRAPPED)
+            (update :zones-area update (get-zone level x y) dec)
+            (update :empty dec))
+          level)))
     (-> level collect-booster drill)
     (bot-covering level)))
 
@@ -566,27 +555,6 @@
                      :weights (weights level)
                      :empty   (count (filter #(= EMPTY %) (:grid level))))]
     (generate-zones level)))
-
-;; closest not filled zone
-(defn closest-zone [level x y]
-  (loop [q (queue [x y])
-         visited #{[x y]}]
-    (if-let [p (peek q)]
-      (let [ns (filter (fn [[x y :as n]]
-                         (and
-                          (not (contains? visited n))
-                          (not= (get-level level x y) OBSTACLE)))
-                       (neighbours level p))
-            finded (first (keep (fn [[x y :as n]]
-                                  (let [zone-id (get-zone level x y)
-                                        area (zone-area level zone-id)]
-                                    (when (and (some? area) (pos? area))
-                                      zone-id)))
-                                ns))]
-        (if (some? finded)
-          finded
-          (recur (into (pop q) ns) (into visited ns))))
-      nil)))
 
 (comment
   (def lvl (load-level "prob-002.desc"))
