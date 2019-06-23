@@ -529,7 +529,7 @@
                         (recur zm (inc iteration))
                         (do
                           (when (= iteration max-iteration-count)
-                            (prn "Cant generate zones"))
+                            (println "Can’t generate zones for" (:name level)))
                           zm))))
         zones-area (into {}
                          (map
