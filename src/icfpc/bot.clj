@@ -206,6 +206,7 @@
 
 (defn rate [[x y] {:keys [boosters weights layout width height] :as level}]
   (cond
+    ;; TODO check current zone
     (boosters [x y]) 100
     ; (= EMPTY (get-level level x y)) (max 1 (aget weights (coord->idx level x y)))
     (= EMPTY (get-level level x y)) 1

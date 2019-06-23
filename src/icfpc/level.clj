@@ -494,12 +494,12 @@
 
 (defn generate-zones [level]
   (let [average-area 100
-        max-iteration-count 10000
         width (:width level)
         height (:height level)
+        max-iteration-count (* width height)
         empty-points (points-by-value level EMPTY)
-        zones-count (int (/ (count empty-points) average-area))
-        centers (map-indexed vector (take zones-count (shuffle* empty-points)))
+        zones-count (inc (int (/ (count empty-points) average-area)))
+        centers (map-indexed (fn [idx z] [(inc idx) z]) (take zones-count (shuffle* empty-points)))
         zones-map {:width width
                    :height height
                    :grid (vec (repeat (* width height) 0))}
@@ -586,7 +586,7 @@
       nil)))
 
 (comment
-  (def lvl (load-level "prob-010.desc"))
+  (def lvl (load-level "prob-001.desc"))
   (apply max (vals (:zones-area lvl)))
   (apply min (vals (:zones-area lvl)))
   (get-level lvl 5 5)
