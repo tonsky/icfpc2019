@@ -349,19 +349,21 @@
   (when (some? delay)
     (Thread/sleep delay)))
 
-(defn exact-find [item]
-  (fn [x y level]
-    (if (= (get-level level x y) item)
-      1
-      0)))
-
 (defn collect-clones [level]
-  (if (some? (get (:boosters level) CLONE))
+  (if (contains? (into #{} (vals (:boosters level))) CLONE)
     (let [level' (loop [level level]
-                   (if-let [path (explore level (exact-find CLONE))]
-                     (recur (reduce act level path))
-                     level))
-          path (explore level' (exact-find SPAWN))]
+                   (let [path (explore level (fn [[x y] level]
+                                                  (if (= (get (:boosters level) [x y])
+                                                         CLONE)
+                                                    1
+                                                    0)))]
+                     (if (some? path)
+                       (recur (reduce act level path))
+                       level)))
+          path (explore level' (fn [[x y] level]
+                                 (if (contains? (:spawns level) [x y])
+                                   1
+                                   0)))]
       (reduce act level' path))
     level))
 
