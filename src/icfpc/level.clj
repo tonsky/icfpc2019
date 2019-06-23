@@ -45,19 +45,15 @@
                             [to-y (round-down (- (+ to-y 1/2) (* k 1/2)))])]
            (map (fn [y] [to-x y]) (range low (inc high)))))))))
 
-(defn ray-path [from-point to-point]
-  (let [[from-x from-y] from-point
-        [to-x to-y] to-point]
-    (assert (and (= from-x (dec to-x))
-                 (<= from-y to-y)))
-    (concat
-     (mapv (fn [y] [from-x y]) (range from-y (inc (long (Math/ceil (/ to-y 2.0))))))
-     (mapv (fn [y] [to-x y]) (range (long (Math/floor (/ to-y 2.0))) (inc to-y))))))
-
-(defn visible? [level from to]
-  (every? true? (map (fn [[x y :as p]]
-                       (not= OBSTACLE (get-level level x y)))
-                     (ray-path from to))))
+(def hand-blocks
+  (into {(->Point 1 -1) [[1 -1]]
+         (->Point 1 0)  [[1 0]]
+         (->Point 1 1)  [[1 1]]}
+    (for [maxy (range 2 20)]
+      [(->Point 1 maxy) (vec
+                          (concat
+                            (for [y (range 1 (inc (quot maxy 2)))] [0 y])
+                            (for [y (range (int (Math/ceil (/ maxy 2.0))) (inc maxy))] [1 y])))])))
 
 (defn valid?
   ([x y {:keys [width height] :as level}]
@@ -71,24 +67,22 @@
   ([{:keys [x y] :as level}]
     (valid? x y level)))
 
-(defn valid-hand?
-  ([x y {:keys [width height] :as level}]
+(defn valid-hand? [x y dx dy {:keys [width height] :as level}]
+  (let [x' (+ x dx) y' (+ y dy)]
     (when (and
-            (< -1 x width)
-            (< -1 y height)
-            (not= OBSTACLE (get-level level x y))
-            (visible? level [x y] [(:x level) (:y level)]))
-      level))
-  ([{:keys [x y] :as level}]
-    (valid? x y level)))
+            (< -1 x' width)
+            (< -1 y' height)
+            (every?
+              (fn [[dx' dy']] (not= OBSTACLE (get-level level (+ x dx') (+ y dy'))))
+              (or (hand-blocks (->Point dx dy)) (throw (Exception. (str "Unknown hand offset" dx dy))))))
+      level)))
 
 (defn bot-covering [{:keys [x y layout] :as level}]
   (for [[dx dy] layout
-        :let [x' (+ x dx) y' (+ y dy)]
         :when (if (= [0 0] [dx dy])
                 (valid? x y level)
-                (valid-hand? x' y' level))]
-    [x' y']))
+                (valid-hand? x y dx dy level))]
+    [(+ x dx) (+ y dy)]))
 
 (defn collect-booster [{:keys [boosters] :as level}]
   (if-some [booster (get boosters [(:x level) (:y level)])]

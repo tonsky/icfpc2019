@@ -211,15 +211,10 @@
     ; (= EMPTY (get-level level x y)) ;(max 1 (aget weights (coord->idx level x y)))
     ; :else
     ; (reduce
-    ;   (fn [acc [dx dy]]
-    ;     (let [x' (+ x dx) y' (+ y dy)]
-    ;       (if (and
-    ;             (< -1 x' width) (< -1 y' height)
-    ;             ; (if (= [0 0] [dx dy]) (valid? x y level) (valid-hand? x' y' level))
-    ;             (= EMPTY (get-level level x' y')))
-    ;         (+ acc (if (= [0 0] [dx dy]) 10 1))
-    ;         acc)))
-    ;   0 layout)
+    ;   (fn [acc [x y]]
+    ;     (if (= EMPTY (get-level level x y)) (+ acc 1) acc))
+    ;   0
+    ;   (bot-covering (assoc level :x x :y y)))
     :else 0))
 
 (defn explore [{:keys [x y active-boosters beakons] :as level}]
@@ -231,7 +226,7 @@
       (if-some [[path [x y :as pos] fast drill :as move] (.poll queue)]
         (if (< (count path) max-len)
           ;; still exploring inside max-len
-          (let [rate  (rate pos level)]
+          (let [rate (rate pos level)]
             ;; moves
             (doseq [[move dx dy] [[LEFT -1 0] [RIGHT 1 0] [UP 0 1] [DOWN 0 -1]]
                     :let [pos' (step x y dx dy (pos? fast) (pos? drill) level)]
@@ -336,7 +331,7 @@
   (println "Hands:" (dec (count (:layout level))) "layout:" (:layout level))
   (println "Beakons:" (:beakons level))
   (println "Score:" (path-score (:path level)) #_#_"via" (:path level))
-  (println "Areas:" (:zones-area level))
+  ; (println "Areas:" (:zones-area level))
   (when (some? delay)
     (Thread/sleep delay)))
 
@@ -357,9 +352,11 @@
 
         (cond+
           (= 0 (:empty level))
-          {:path  (:path level)
-           :score (path-score (:path level))
-           :time  (- (System/currentTimeMillis) t0)}
+          (do
+            (when debug? (print-step level delay))
+            {:path  (:path level)
+             :score (path-score (:path level))
+             :time  (- (System/currentTimeMillis) t0)})
 
           :when-some [level' (apply-boosters level)]
           (recur level')
