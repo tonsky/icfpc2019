@@ -148,22 +148,25 @@
         solution-name (format "solution-%03d.sol" block)
         generated-name (format "generated-%03d.desc" block)]
     (println (format "Round: %03d" block))
-    (spit (str "./puzzles/" puzzle-name) puzzle)
-    (spit (str "./puzzles/" task-name) task)
-    (println "Generating level...")
-    (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
-          level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
-      (icfpc.parser/validate-puzzle puzzle level)
-      (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
-      (println "Level generated" generated-name)
-      (println "Trying to solve level...")
-      (let [level (level/load-level (str "../puzzles/" task-name))
-            sln   (bot/solve level (merge
-                                    {:debug? false
-                                     :lookahead? false #_(<= (:width level) 200)}))]
-        (println "Solved" solution-name (dissoc sln :path))
-        (spit (str "./puzzles/" solution-name) (:path sln)))
-      (println (run-lambda "submit" (str block) (str "../../puzzles/" solution-name) (str "../../puzzles/" generated-name))))
+    (if (.exists (io/file "puzzles" generated-name))
+      (println "Already solved, nothing to do")
+      (do
+        (spit (str "./puzzles/" puzzle-name) puzzle)
+        (spit (str "./puzzles/" task-name) task)
+        (println "Generating level...")
+        (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
+              level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
+          (icfpc.parser/validate-puzzle puzzle level)
+          (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
+          (println "Level generated" generated-name)
+          (println "Trying to solve level...")
+          (let [level (level/load-level (str "../puzzles/" task-name))
+                sln   (bot/solve level (merge
+                                        {:debug? false
+                                         :lookahead? false #_(<= (:width level) 200)}))]
+            (println "Solved" solution-name (dissoc sln :path))
+            (spit (str "./puzzles/" solution-name) (:path sln)))
+          (println (run-lambda "submit" (str block) (str "../../puzzles/" solution-name) (str "../../puzzles/" generated-name))))))
     (shutdown-agents)))
 
 
