@@ -561,10 +561,37 @@
                      :empty   (count (filter #(= EMPTY %) (:grid level))))]
     (generate-zones level)))
 
+;; closest not filled zone
+(defn closest-zone [level x y]
+  (loop [q (queue [x y])
+         visited #{[x y]}]
+    (if-let [p (peek q)]
+      (let [ns (filter (fn [[x y :as n]]
+                         (and
+                          (not (contains? visited n))
+                          (not= (get-level level x y) OBSTACLE)))
+                       (neighbours level p))
+            finded (first (keep (fn [[x y :as n]]
+                                  (let [zone-id (get-zone level x y)
+                                        area (get-in level [:zones-area zone-id])]
+                                    (when (pos? area)
+                                      zone-id)))
+                                ns))]
+        (if (some? finded)
+          finded
+          (recur (into (pop q) ns) (into visited ns))))
+      nil)))
+
 (comment
-  (def lvl (load-level "prob-150.desc"))
+  (def lvl (load-level "prob-010.desc"))
   (apply max (vals (:zones-area lvl)))
   (apply min (vals (:zones-area lvl)))
+  (get-level lvl 5 5)
+  (map (get-level lvl (first %) (second %))
+       (neighbours lvl [5 5]))
+  (get-level lvl 11 0)
+
+  (closest-zone (assoc-in lvl [:zones-area 1] 0) 16 0)
 
   (icfpc.bot/print-level lvl :max-w 10000 :max-h 10000 :colored? false  :zones? true)
   *e
