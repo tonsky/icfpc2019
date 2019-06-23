@@ -193,7 +193,7 @@
 
 (defn make-move [level]
   (let [min-score (:score level)
-        seen      (java.util.HashSet. [(:x level) (:y level)])
+        seen      (java.util.HashSet. [[(:x level) (:y level)]])
         queue     (java.util.ArrayDeque. [level])]
     (loop []
       (when-some [{:keys [x y] :as level} (.poll queue)]
@@ -232,7 +232,16 @@
                   (.add queue (wear-off-boosters move)))
                 (recur)))))))))
 
-(defn print-level [{:keys [width height name boosters x y] :as level} 
+(defn explore [{:keys [x y active-boosters]}]
+  (let [seen  (java.util.HashSet. [[x y]])
+        queue (java.util.ArrayDeque. [[[] x y (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0)]])]
+    (loop []
+      (if-some [[path x y wheels drill] (.poll queue)]
+        :true
+        :else))))
+
+
+(defn print-level [{:keys [width height name boosters x y spawns] :as level} 
                    & {:keys [colored? max-w max-h] :or {max-w 50 max-h 30 colored? true}}]
   (println name)
   (doseq [y (range (min (dec height) (+ y max-h)) (dec (max 0 (- y max-h))) -1)]
@@ -242,23 +251,31 @@
         (cond
           (and (= x (:x level)) (= y (:y level)))
           (if colored?
-            (print "\033[37;1;41m☺\033[0m")
+            (print "\033[97;101mO\033[0m")
             (print "☺"))
 
           (some? booster)
           (if colored?
-            (print (str "\033[42m" booster "\033[0m"))
+            (print (str "\033[97;42m" booster "\033[0m"))
             (print booster))
+
+          (contains? spawns [x y])
+          (if colored?
+            (print (str "\033[97;44mX\033[0m"))
+            (print "X"))
 
           (= v EMPTY)
           (if colored?
-            (print "\033[103m•\033[0m")
+            (print "\033[103m.\033[0m")
             (print "•"))
 
           (= v WRAPPED)
           (if colored?
-            (print "\033[43m+\033[0m")
+            (print "\033[97;43m.\033[0m")
             (print "+"))
+
+          (= v OBSTACLE)
+          (print ".")
 
           :else
           (print (get-level level x y))))

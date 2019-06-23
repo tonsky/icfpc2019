@@ -45,7 +45,8 @@
       (log (when-some [t0 (:t0 opts)]
              (str (- (System/currentTimeMillis) t0) "ms"))
            "Left" (left)
-           "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln)))))
+           "Solved" name (dissoc sln :path) "was" (str/join " / " (compare-solutions name (:score sln))))
+      (:score sln))
     (catch Exception e
       (println (.getMessage e)))))
 
