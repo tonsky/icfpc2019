@@ -47,7 +47,7 @@
     (sort-by #(.getName ^File %))
     (map     #(io/file % (str name ".sol")))
     (filter  #(.exists ^File %))
-    (map     #(core/path-score (slurp %)))
+    (map     #(core/sol-score (slurp %)))
     (distinct)
     (take-last 2)
     (map     #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
@@ -134,7 +134,7 @@
   (->> (file-seq (io/file path))
        (filter #(str/ends-with? (.getName ^File %) ".sol"))
        (map slurp)
-       (map core/path-score)
+       (map core/sol-score)
        (reduce + 0)))
 
 (defn mine-coins [& [block excluded puzzle task]]

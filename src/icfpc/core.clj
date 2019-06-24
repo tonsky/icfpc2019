@@ -82,6 +82,11 @@
 (defn path-score [path]
   (count (re-seq #"[A-Z]" path)))
 
+(defn sol-score [sol]
+  (->> (clojure.string/split sol #"#")
+    (map path-score)
+    (reduce max)))
+
 (defn level-score [level]
   (->> (:bots level)
     (map #(path-score (:path %)))
