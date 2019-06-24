@@ -11,7 +11,7 @@
 (def ^:dynamic *debug?* true)
 (def ^:dynamic *delay* nil)
 (def ^:dynamic *disabled* #{})
-(def ^:dynamic *explore-depth* 10)
+(def ^:dynamic *explore-depth* 5)
 (def ^:dynamic *zones?*)
 (def ^:dynamic *last-frame*)
 
@@ -315,7 +315,6 @@
 
 (defn print-step
   ([{:keys [bots collected-boosters path] :as level}]
-    (println "\033[2J")
     (print-level level)
     (println "Active:"    (for [bot bots]
                             (filterv #(pos? (second %)) (:active-boosters bot))))
@@ -323,6 +322,7 @@
     (println "Score:"     (level-score level))
     (println "Zones:"     (mapv #(zone-char (:current-zone %)) bots)))
   ([level delay]
+    (println "\033[2J")
     (print-step level)
     (when (some? delay)
       (Thread/sleep delay))))
@@ -381,7 +381,7 @@
     (let [action (first plan)
           level' (-> (act level action)
                    (wear-off-boosters))]
-      (if (> (:empty level) (:empty level'))
+      (if false #_(> (- (:empty level) (:empty level')) 3)
         (update-bot level' :plan (constantly nil))
         (update-bot level' :plan #(drop 1 %))))
 
