@@ -58,8 +58,6 @@
 (defn coord->idx [level x y] (+ x (* y (:width level))))
 
 (defn get-level
-  ([level]
-   (nth (:grid level) (coord->idx level (:x level) (:y level))))
   ([level x y]
    (nth (:grid level) (coord->idx level x y)))
   ([level x y default]
@@ -83,3 +81,8 @@
 
 (defn path-score [path]
   (count (re-seq #"[A-Z]" path)))
+
+(defn level-score [level]
+  (->> (:bots level)
+    (map #(path-score (:path %)))
+    (reduce max)))

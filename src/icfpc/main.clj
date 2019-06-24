@@ -3,6 +3,7 @@
    [icfpc.bot :as bot]
    [icfpc.core :as core]
    [icfpc.level :as level]
+   [icfpc.generator :as generator]
    [clojure.string :as str]
    [clojure.java.io :as io]
    [clojure.java.shell :as shell]
@@ -138,7 +139,7 @@
     (spit (str "./puzzles/" task-name) task)
     (println "Generating level...")
     (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
-          level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
+          level (icfpc.generator/generate-level (str "../puzzles/" puzzle-name))]
       (icfpc.parser/validate-puzzle puzzle level)
       (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
       (println "Level generated" generated-name)
@@ -167,7 +168,7 @@
         (spit (str "./puzzles/" task-name) task)
         (println "Generating level...")
         (let [puzzle (icfpc.parser/parse-puzzle (str "../puzzles/" puzzle-name))
-              level (icfpc.level/generate-level (str "../puzzles/" puzzle-name))]
+              level (icfpc.generator/generate-level (str "../puzzles/" puzzle-name))]
           (icfpc.parser/validate-puzzle puzzle level)
           (spit (str "./puzzles/" generated-name) (icfpc.writer/desc level))
           (println "Level generated" generated-name)
