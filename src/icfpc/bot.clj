@@ -99,10 +99,7 @@
             (booster-collected? level TELEPORT)
             (not (contains? (:beakons level) [x y]))
             (every?
-              (fn [[bx by]]
-                (>= (+ (Math/abs (- (:x level) bx))
-                       (Math/abs (- (:y level) by)))
-                    50))
+              (fn [[bx by]] (>= (+ (Math/abs (- x bx)) (Math/abs (- y by))) 50))
               (:beakons level)))
       (-> level
         (spend :collected-boosters TELEPORT)
