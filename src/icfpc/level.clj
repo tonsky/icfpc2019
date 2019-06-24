@@ -176,9 +176,11 @@
         max-iteration-count (* width height)
         empty-points (points-by-value level EMPTY)
 
-;        average-area 70
-;        max-zones-count 1000
-;        zones-count (min max-zones-count (inc (int (/ (count empty-points) average-area))))
+        average-area 70
+        max-zones-count 1000
+        zones-count (if (= zones-count 1)
+                      1
+                      (min max-zones-count (inc (int (/ (count empty-points) average-area)))))
 
         centers (map-indexed (fn [idx z] [(inc idx) z]) (take zones-count (shuffle* empty-points)))
         zones-map {:width width
