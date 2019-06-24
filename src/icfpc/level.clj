@@ -1,5 +1,7 @@
 (ns icfpc.level
   (:require
+   [clojure.java.io :as io]
+   [clojure.string :as str]
    [icfpc.core :refer :all]
    [icfpc.parser :as parser]
    [icfpc.writer :as writer]))
@@ -234,6 +236,17 @@
    :path            ""
    :current-zone    nil})
 
+(defn maybe-add-bonuses [level name]
+  (let [[_ name] (re-matches #".*/([^/]+)\.desc" name)
+        buy (io/file (str name ".buy"))]
+    (if (.exists buy)
+      (reduce
+        (fn [level bonus]
+          (update level :collected-boosters update bonus (fnil inc 0)))
+        level
+        (str/trim (slurp buy)))
+      level)))
+
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
@@ -249,7 +262,11 @@
         level (assoc level
                      :weights (weights level)
                      :empty   (count (filter #(= EMPTY %) (:grid level))))
-        clones-count (inc (count (filter #(= CLONE (val %)) (:boosters level))))]
+        level (maybe-add-bonuses level name)
+        clones-count (+ 
+                       (count (filter #(= CLONE (val %)) (:boosters level)))
+                       ((:collected-boosters level) CLONE 0)
+                       1)]
     (generate-zones level clones-count)))
 
 (comment

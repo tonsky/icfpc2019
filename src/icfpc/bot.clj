@@ -8,12 +8,9 @@
   (:import
    [java.util HashMap HashSet ArrayDeque]))
 
-(def ^:dynamic *debug?* true)
-(def ^:dynamic *delay* nil)
 (def ^:dynamic *disabled* #{})
 (def ^:dynamic *explore-depth* 5)
-(def ^:dynamic *zones?*)
-(def ^:dynamic *last-frame*)
+(def ^:dynamic *zones?* true)
 
 (s/def :level/width nat-int?)
 (s/def :level/height nat-int?)
@@ -413,11 +410,7 @@
         *last-frame (atom 0)]
     (binding [*disabled*      (or disabled *disabled*)
               *explore-depth* (or explore-depth *explore-depth*)
-              *zones?*        (if (some? zones?)
-                                zones?
-                                (or
-                                  (pos? ((:collected-boosters level) CLONE 0))
-                                  (some (fn [[_ b]] (= b CLONE)) (:boosters level))))]
+              *zones?*        (if zones? zones? *zones?*)]
       (loop [level (binding [*bot* 0] (mark-wrapped level))]
         (when (.isInterrupted (Thread/currentThread))
           (throw (InterruptedException.)))

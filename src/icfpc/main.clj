@@ -52,20 +52,9 @@
     (take-last 2)
     (map     #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
-(defn maybe-add-bonuses [level name]
-  (let [buy (io/file (str "problems/" name ".buy"))]
-    (if (.exists buy)
-      (reduce
-        (fn [level bonus]
-          (update level :collected-boosters update bonus (fnil inc 0)))
-        level
-        (str/trim (slurp buy)))
-      level)))
-
 (defn solve [name & [{:keys [*left t0 throw?] :or {throw? true} :as opts}]]
   (try
-    (let [level (-> (level/load-level (str name ".desc"))
-                  (maybe-add-bonuses name))
+    (let [level (level/load-level (str name ".desc"))
           sln   (bot/solve level (merge {:debug? false} opts))
           left  (some-> *left (swap! dec))]
       (spit (str "problems/" name ".sol") (:path sln))
