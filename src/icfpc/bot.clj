@@ -407,8 +407,8 @@
           (recur (wear-off-boosters level'))
 
           :when-some [[path _] (or 
-                                 (goto-spawn level)
-                                 (collect-clone level)
+                                 ; (goto-spawn level)
+                                 ; (collect-clone level)
                                  (explore level rate)
                                  (wait-off-fast level))]
           (do
