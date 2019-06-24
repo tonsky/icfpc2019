@@ -237,14 +237,15 @@
    :current-zone    nil})
 
 (defn maybe-add-bonuses [level name]
-  (let [[_ name] (re-matches #".*/([^/]+)\.desc" name)
-        buy (io/file (str name ".buy"))]
+  (let [[_ name] (re-matches #"(.*)\.desc" name)
+        buy (io/file (str "problems/" name ".buy"))]
     (if (.exists buy)
-      (reduce
-        (fn [level bonus]
-          (update level :collected-boosters update bonus (fnil inc 0)))
-        level
-        (str/trim (slurp buy)))
+      (let [bonuses (str/trim (slurp buy))]
+        (reduce
+          (fn [level bonus]
+            (update level :collected-boosters update bonus (fnil inc 0)))
+          level
+          bonuses))
       level)))
 
 (defn load-level [name]
