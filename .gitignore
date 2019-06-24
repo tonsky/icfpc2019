@@ -17,6 +17,7 @@ figwheel_server.log
 .DS_Store
 solutions.zip
 problems/*.sol
+problems/*.buy
 client/lambda-client/blocks
 *.log
 nohup.out

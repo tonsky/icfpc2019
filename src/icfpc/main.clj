@@ -1,7 +1,7 @@
 (ns icfpc.main
   (:require
    [icfpc.bot :as bot]
-   [icfpc.core :as core]
+   [icfpc.core :as core :refer [cond+]]
    [icfpc.level :as level]
    [icfpc.generator :as generator]
    [clojure.string :as str]
@@ -18,6 +18,29 @@
 
 (defn log [& msg] (send log-agent (fn [_] (apply println (remove nil? msg)) _)))
 
+(def coins 98648)
+
+(defn gen-buys []
+  (doseq [^File file (file-seq (io/file "problems"))
+          :when (str/ends-with? (.getName file) ".buy")]
+    (.delete file))
+  (doseq [name (->> (file-seq (io/file "problems/"))
+                 (filter (fn [^File file]
+                           (and (str/ends-with? (.getName file) ".desc")
+                             (let [body (slurp file)]
+                               (and (zero? (count (re-seq #"C\(" body)))
+                                 (pos? (count (re-seq #"X\(" body))))))))
+                 (sort-by #(.length ^File %))
+                 (reverse)
+                 (map #(second (re-matches #".*/(prob-\d\d\d)\.desc" (.getPath ^File %))))
+                 (take (quot coins 2000)))]
+    (println "Buying 1 clone for" name)
+    (spit (str "problems/" name ".buy") "C")
+    (let [sol (io/file (str "problems/" name ".sol"))]
+      (when (.exists sol)
+        (println "Erasing solution" name)
+        (.delete sol)))))
+
 (defn compare-solutions [name score]
   (->> (file-seq (io/file "."))
     (filter  #(str/starts-with? (.getName ^File %) "day"))
@@ -29,9 +52,20 @@
     (take-last 2)
     (map     #(format "%d (%+.1f%%)" % (-> (- score %) (/ %) (* 100) (float))))))
 
+(defn maybe-add-bonuses [level name]
+  (let [buy (io/file (str "problems/" name ".buy"))]
+    (if (.exists buy)
+      (reduce
+        (fn [level bonus]
+          (update level :collected-boosters update bonus (fnil inc 0)))
+        level
+        (str/trim (slurp buy)))
+      level)))
+
 (defn solve [name & [{:keys [*left t0 throw?] :or {throw? true} :as opts}]]
   (try
-    (let [level (level/load-level (str name ".desc"))
+    (let [level (-> (level/load-level (str name ".desc"))
+                  (maybe-add-bonuses name))
           sln   (bot/solve level (merge {:debug? false} opts))
           left  (some-> *left (swap! dec))]
       (spit (str "problems/" name ".sol") (:path sln))
@@ -86,6 +120,7 @@
     (.shutdown executor)))
 
 (defn -main [& [from till threads]]
+  (gen-buys)
   (main from till threads)
   (shutdown-agents))
 

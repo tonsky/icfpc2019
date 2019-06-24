@@ -415,7 +415,9 @@
               *explore-depth* (or explore-depth *explore-depth*)
               *zones?*        (if (some? zones?)
                                 zones?
-                                (some (fn [[_ b]] (= b CLONE)) (:boosters level)))]
+                                (or
+                                  (pos? ((:collected-boosters level) CLONE 0))
+                                  (some (fn [[_ b]] (= b CLONE)) (:boosters level))))]
       (loop [level (binding [*bot* 0] (mark-wrapped level))]
         (when (.isInterrupted (Thread/currentThread))
           (throw (InterruptedException.)))
