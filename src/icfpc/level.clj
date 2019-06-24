@@ -170,17 +170,13 @@
     (java.util.Collections/shuffle al (java.util.Random. 42))
     (clojure.lang.RT/vector (.toArray al))))
 
-(defn generate-zones [level zones-count]
+(defn generate-zones [level bots]
   (let [width (:width level)
         height (:height level)
         max-iteration-count (* width height)
         empty-points (points-by-value level EMPTY)
 
-        average-area 70
-        max-zones-count 1000
-        zones-count (if (= zones-count 1)
-                      1
-                      (min max-zones-count (inc (int (/ (count empty-points) average-area)))))
+        zones-count  bots
 
         centers (map-indexed (fn [idx z] [(inc idx) z]) (take zones-count (shuffle* empty-points)))
         zones-map {:width width

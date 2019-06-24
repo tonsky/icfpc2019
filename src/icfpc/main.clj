@@ -34,11 +34,9 @@
                  (reverse)
                  (map #(second (re-matches #".*/(prob-\d\d\d)\.desc" (.getPath ^File %))))
                  (take (quot coins 2000)))]
-    (println "Buying 1 clone for" name)
     (spit (str "problems/" name ".buy") "C")
     (let [sol (io/file (str "problems/" name ".sol"))]
       (when (.exists sol)
-        (println "Erasing solution" name)
         (.delete sol)))))
 
 (defn compare-solutions [name score]
