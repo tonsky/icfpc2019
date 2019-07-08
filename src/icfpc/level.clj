@@ -182,8 +182,9 @@
         zones-map {:width width
                    :height height
                    :grid (vec (repeat (* width height) 0))}
+        set (fn [zm x y v] (update zm :grid assoc (+ x (* y width)) v))
         zones-map (reduce (fn [zm [idx [x y]]]
-                            (set-level zm x y idx))
+                            (set zm x y idx))
                           zones-map
                           centers)
         zones-map (loop [zones zones-map
@@ -197,7 +198,7 @@
                                                                                      z))))
                                                                              (neighbours zm [x y])))]
                                                           (if (some? z)
-                                                            {:zm (set-level zm x y z)
+                                                            {:zm (set zm x y z)
                                                              :end? end?}
                                                             {:zm zm
                                                              :end? false}))
@@ -249,18 +250,21 @@
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
+        grid       (make-array Character/TYPE (* width height))
+        _          (java.util.Arrays/fill grid OBSTACLE)
         init-level {:name     name
                     :width    width
                     :height   height
-                    :grid     (vec (repeat (* width height) OBSTACLE))
+                    :grid     grid
                     :boosters (build-boosters boosters)
                     :spawns   (build-spawns boosters)
                     :collected-boosters {}
                     :bots     [(new-bot (first bot-point) (second bot-point))]}
         level (fill-level init-level corners obstacles)
+        empty (arr-reduce #(if (= EMPTY %2) (inc %1) %1) 0 grid)
         level (assoc level
                      :weights (weights level)
-                     :empty   (count (filter #(= EMPTY %) (:grid level))))
+                     :empty   empty)
         level (maybe-add-bonuses level name)
         clones-count (+ 
                        (count (filter #(= CLONE (val %)) (:boosters level)))

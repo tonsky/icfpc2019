@@ -68,7 +68,8 @@
      default)))
 
 (defn set-level [level x y value]
-  (update level :grid assoc (coord->idx level x y) value))
+  (aset-char (:grid level) (coord->idx level x y) value)
+  level)
 
 (defn get-zone [level x y]
   (nth (:zones-grid level) (coord->idx level x y)))
@@ -91,3 +92,7 @@
   (->> (:bots level)
     (map #(path-score (:path %)))
     (reduce max)))
+
+(defn arr-reduce [f init arr]
+  (areduce arr i ret init
+    (f ret (aget arr i))))

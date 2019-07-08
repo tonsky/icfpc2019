@@ -79,6 +79,7 @@
     (.delete file)))
 
 (defn main [& [from till threads]]
+  (clear)
   (let [from  (cond-> from (string? from) (Integer/parseInt))
         till  (cond-> till (string? till) (Integer/parseInt))
         names (->> (file-seq (io/file "problems"))
