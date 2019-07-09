@@ -183,8 +183,10 @@
         centers (map-indexed (fn [idx z] [(inc idx) z]) (take zones-count (shuffle* empty-points)))
         zones-map {:width width
                    :height height
-                   :grid (vec (repeat (* width height) 0))}
-        set (fn [zm x y v] (update zm :grid assoc (+ x (* y width)) v))
+                   :grid (make-array Byte/TYPE (* width height))}
+        _ (java.util.Arrays/fill ^bytes (:grid zones-map) (byte 0))
+        get (fn [zm x y] (aget (:grid zm) (+ x (* y width))))
+        set (fn [zm x y v] (aset-byte (:grid zm) (+ x (* y width)) v) zm)
         zones-map (reduce (fn [zm [idx [x y]]]
                             (set zm x y idx))
                           zones-map
@@ -192,10 +194,10 @@
         zones-map (loop [zones zones-map
                          iteration 0]
                     (let [{:keys [zm end?]} (reduce (fn [{:keys [zm end?]} [x y]]
-                                                      (if (= (get-level zm x y) 0)
+                                                      (if (= (get zm x y) 0)
                                                         (let [z (first (keep (fn [[nx ny]]
                                                                                (when (= EMPTY (get-level level nx ny))
-                                                                                 (let [z (get-level zones nx ny)]
+                                                                                 (let [z (get zones nx ny)]
                                                                                    (when (not= z 0)
                                                                                      z))))
                                                                              (neighbours zm [x y])))]
@@ -220,7 +222,7 @@
                           (group-by first (for [x (range width)
                                                 y (range height)
                                                 :when (= EMPTY (get-level level x y))]
-                                            [(get-level zones-map x y) [x y]]))))
+                                            [(get zones-map x y) [x y]]))))
         level (assoc level :zones-grid (:grid zones-map)
                            :zones-area zones-area)
         update-bot (fn [bot]
@@ -252,7 +254,7 @@
 (defn load-level [name]
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
-        grid       (make-array Character/TYPE (* width height))
+        grid       (make-array Byte/TYPE (* width height))
         _          (java.util.Arrays/fill grid OBSTACLE)
         init-level {:name     name
                     :width    width

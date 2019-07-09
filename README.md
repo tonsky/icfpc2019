@@ -42,6 +42,7 @@ $ ICFPC_KEY=... ./submit.sh
 ## Building native image
 
 ```
+$ export GRAAL_HOME=...
 $ lein native-image
 $ ./target/icfpc2019
 ```

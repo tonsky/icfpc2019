@@ -24,9 +24,9 @@
   (nth [_ i] (case i 0 x 1 y))
   (nth [_ i nf] (case i 0 x 1 y nf)))
 
-(def EMPTY \•)
-(def OBSTACLE \O)
-(def WRAPPED \+)
+(def EMPTY (byte 0))
+(def OBSTACLE (byte 1))
+(def WRAPPED (byte 2))
 (def EXTRA_HAND \B)
 (def FAST_WHEELS \F)
 (def DRILL \L)
@@ -59,20 +59,20 @@
 
 (defn get-level
   ([level x y]
-   (nth (:grid level) (coord->idx level x y)))
+   (aget (:grid level) (coord->idx level x y)))
   ([level x y default]
    (if (and
          (< -1 x (:width level))
          (< -1 y (:height level)))
-     (nth (:grid level) (coord->idx level x y))
+     (aget (:grid level) (coord->idx level x y))
      default)))
 
 (defn set-level [level x y value]
-  (aset-char (:grid level) (coord->idx level x y) value)
+  (aset-byte (:grid level) (coord->idx level x y) value)
   level)
 
 (defn get-zone [level x y]
-  (nth (:zones-grid level) (coord->idx level x y)))
+  (aget (:zones-grid level) (coord->idx level x y)))
 
 (defn zone-area [level zone]
   (get (:zones-area level) zone))
