@@ -38,3 +38,10 @@ Submit everything:
 ```
 $ ICFPC_KEY=... ./submit.sh
 ```
+
+## Building native image
+
+```
+$ lein native-image
+$ ./target/icfpc2019
+```

@@ -4,7 +4,9 @@
    [clojure.string :as str]
    [icfpc.core :refer :all]
    [icfpc.parser :as parser]
-   [icfpc.writer :as writer]))
+   [icfpc.writer :as writer])
+  (:import
+   [java.util Arrays]))
 
 (def ^:dynamic *bot*)
 

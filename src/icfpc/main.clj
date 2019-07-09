@@ -10,7 +10,8 @@
    [clojure.data.json :as json])
   (:import
    [java.io File]
-   [java.util.concurrent CompletableFuture]))
+   [java.util.concurrent CompletableFuture])
+  (:gen-class))
 
 (set! *warn-on-reflection* true)
 
