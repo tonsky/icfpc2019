@@ -55,16 +55,16 @@
        (> v 1)  (update map k assoc k2 (dec v))
        :else    (update map k dissoc k2)))))
 
-(defn coord->idx [level x y] (+ x (* y (:width level))))
+(defn coord->idx ^long [level x y] (+ x (* y (:width level))))
 
 (defn get-level
   ([level x y]
-   (aget (:grid level) (coord->idx level x y)))
+   (aget ^bytes (:grid level) (coord->idx level x y)))
   ([level x y default]
    (if (and
          (< -1 x (:width level))
          (< -1 y (:height level)))
-     (aget (:grid level) (coord->idx level x y))
+     (aget ^bytes (:grid level) (coord->idx level x y))
      default)))
 
 (defn set-level [level x y value]
@@ -72,10 +72,10 @@
   level)
 
 (defn get-zone [level x y]
-  (aget (:zones-grid level) (coord->idx level x y)))
+  (aget ^bytes (:zones-grid level) (coord->idx level x y)))
 
 (defn zone-area [level zone]
-  (get (:zones-area level) zone))
+  ((:zones-area level) zone))
 
 (defn seek [pred coll]
   (some #(if (pred %) %) coll))
@@ -93,6 +93,6 @@
     (map #(path-score (:path %)))
     (reduce max)))
 
-(defn arr-reduce [f init arr]
+(defn arr-reduce [f init ^bytes arr]
   (areduce arr i ret init
     (f ret (aget arr i))))

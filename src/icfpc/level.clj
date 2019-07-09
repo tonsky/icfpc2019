@@ -185,8 +185,8 @@
                    :height height
                    :grid (make-array Byte/TYPE (* width height))}
         _ (java.util.Arrays/fill ^bytes (:grid zones-map) (byte 0))
-        get (fn [zm x y] (aget (:grid zm) (+ x (* y width))))
-        set (fn [zm x y v] (aset-byte (:grid zm) (+ x (* y width)) v) zm)
+        get (fn [zm x y] (aget ^bytes (:grid zm) (+ x (* y width))))
+        set (fn [zm x y v] (aset-byte ^bytes (:grid zm) (+ x (* y width)) v) zm)
         zones-map (reduce (fn [zm [idx [x y]]]
                             (set zm x y idx))
                           zones-map
@@ -255,7 +255,7 @@
   (let [{:keys [bot-point corners obstacles boosters]} (parser/parse-level name)
         [width height] (bounds corners)
         grid       (make-array Byte/TYPE (* width height))
-        _          (java.util.Arrays/fill grid OBSTACLE)
+        _          (java.util.Arrays/fill ^bytes grid ^Byte OBSTACLE)
         init-level {:name     name
                     :width    width
                     :height   height

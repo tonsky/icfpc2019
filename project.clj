@@ -8,6 +8,10 @@
   :jvm-opts ["-Xverify:none"]
   :plugins [[io.taylorwood/lein-native-image "0.3.0"]]  
 
+  :global-vars {*warn-on-reflection* true
+                ; *unchecked-math* :warn-on-boxed
+              }
+
   :native-image {:name "icfpc2019"
                  :opts ["--report-unsupported-elements-at-runtime"
                         "--initialize-at-build-time"

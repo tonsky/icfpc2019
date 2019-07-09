@@ -6,7 +6,7 @@
    [icfpc.core :refer :all]
    [icfpc.level :refer :all])
   (:import
-   [java.util HashMap HashSet ArrayDeque]))
+   [java.util Collection HashMap HashSet ArrayDeque]))
 
 (def ^:dynamic *disabled* #{})
 (def ^:dynamic *explore-depth* 5)
@@ -96,7 +96,7 @@
             (booster-collected? level TELEPORT)
             (not (contains? (:beakons level) [x y]))
             (every?
-              (fn [[bx by]] (>= (+ (Math/abs (- x bx)) (Math/abs (- y by))) 50))
+              (fn [[bx by]] (>= (+ (Math/abs ^long (- x bx)) (Math/abs ^long (- y by))) 50))
               (:beakons level)))
       (-> level
         (spend :collected-boosters TELEPORT)
@@ -189,7 +189,7 @@
                     (valid-hand? x y dx dy level))
                   (= EMPTY (get-level level x' y'))
                   (or (not *zones?*) (= current-zone (get-zone level x y))))
-              (+ acc (max 1 (aget weights (coord->idx level x' y'))))
+              (+ acc (max 1 (aget ^shorts weights (coord->idx level x' y'))))
               acc)))
         0
         layout)
@@ -197,12 +197,12 @@
 
 (defn explore* [{:keys [bots beakons] :as level} rate-fn]
   (let [{:keys [x y active-boosters]} (nth bots *bot*)
-        paths (HashSet. [(->Point x y)])
-        queue (ArrayDeque. [[[] (->Point x y) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0) #{}]])]
+        paths (doto (HashSet.) (.addAll [(->Point x y)]))
+        queue (doto (ArrayDeque.) (.addAll [[[] (->Point x y) (active-boosters FAST_WHEELS 0) (active-boosters DRILL 0) #{}]]))]
     (loop [max-len   *explore-depth*
            best-path nil
            best-pos  nil
-           best-rate 0]
+           best-rate (double 0)]
       (if-some [[path [x y :as pos] fast drill drilled :as move] (.poll queue)]
         (if (< (count path) max-len)
           ;; still exploring inside max-len
@@ -227,7 +227,7 @@
               (.add queue [path' pos' (spend fast) (spend drill) drilled]))
             (cond+
               (empty? path)      (recur max-len best-path best-pos best-rate)
-              :let [rate (/ (rate-fn pos level) (count path))]
+              :let [rate (double (/ (rate-fn pos level) (count path)))]
               (zero? rate)       (recur max-len best-path best-pos best-rate)
               (zero? best-rate)  (recur max-len path pos rate)
               (> rate best-rate) (recur max-len path pos rate)
@@ -238,7 +238,7 @@
           (if (nil? best-path)
             (do
               (.addFirst queue move)
-              (recur (+ max-len *explore-depth*) nil nil 0)) ;; not found anything, try expand
+              (recur (+ max-len *explore-depth*) nil nil (double 0))) ;; not found anything, try expand
             [best-path best-pos]))
         [best-path best-pos]))))
 
